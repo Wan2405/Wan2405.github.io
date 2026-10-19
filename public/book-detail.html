@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết Đầu sách — Hệ thống Thư viện</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/member-library.css?v=20261019_3">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="assets/js/api.js?v=20261019_3" defer></script>
+    <script src="assets/js/book-detail.js?v=20261019_3" defer></script>
+</head>
+<body>
+    <div id="readowl-shell" class="readowl-shell">
+        <button id="btn-edge-toggle" type="button" class="readowl-edge-toggle" title="Thu gọn / Mở rộng thanh điều hướng">
+            <i id="edge-toggle-icon" class="bi bi-chevron-left"></i>
+        </button>
+
+        <!-- Sidebar tự động đồng bộ Admin Theme hoặc ReadOwl -->
+        <aside class="readowl-sidebar" aria-label="Menu thư viện">
+            <!-- Header dành cho Admin Theme -->
+            <a href="admin/dashboard.html" class="sidebar-logo admin-only-block">THƯ VIỆN</a>
+            <div class="sidebar-user-box admin-only-block">
+                <div class="sidebar-avatar"><i class="bi bi-person-fill"></i></div>
+                <p id="admin-sidebar-name" class="sidebar-user-name">Quản trị Thư viện</p>
+                <p id="admin-sidebar-role" class="sidebar-user-role">Quản trị hệ thống</p>
+            </div>
+
+            <!-- Header dành cho ReadOwl (Guest / Member) -->
+            <a href="index.html" class="readowl-brand owl-only-block">
+                <span class="owl-glasses">🦉</span>
+                <span class="brand-word">ReadOwl</span>
+            </a>
+
+            <ul id="detail-sidebar-nav" class="readowl-nav">
+                <li>
+                    <a href="index.html" class="readowl-nav-btn active">
+                        <i class="bi bi-search"></i>
+                        <span>Tra cứu sách công khai</span>
+                    </a>
+                </li>
+            </ul>
+
+            <ul id="detail-sidebar-bottom" class="readowl-nav readowl-nav-bottom admin-only-block" style="flex-direction: column;"></ul>
+
+            <div class="continue-reading-box owl-only-block">
+                <p class="continue-reading-title">Quy định mượn sách</p>
+                <div
+                    class="mini-book-cover"
+                    style="background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%);"
+                >
+                    <span style="font-size: 8px; opacity: 0.85;">LOAN POLICY</span>
+                    <span>Tối đa 3 cuốn</span>
+                    <span style="font-size: 8.5px; opacity: 0.9;">Hạn trả 14 ngày</span>
+                </div>
+                <div class="mini-progress-track">
+                    <div class="mini-progress-bar" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <a id="sidebar-user-pill" href="login.html" class="sidebar-member-pill owl-only-block" title="Tài khoản">
+                <div class="d-flex align-items-center gap-2 overflow-hidden">
+                    <span id="sidebar-avatar-initial" class="member-pill-avatar">K</span>
+                    <span id="sidebar-display-name" class="fw-bold small text-truncate">Khách vãng lai</span>
+                </div>
+                <i class="bi bi-chevron-right small text-secondary"></i>
+            </a>
+        </aside>
+
+        <div class="readowl-main">
+            <!-- Thanh Topbar trắng dành riêng cho Admin Theme -->
+            <header class="admin-top-navbar admin-only-block">
+                <div class="d-flex align-items-center gap-3">
+                    <button id="btn-admin-hamburger" type="button" class="btn-owl-hamburger" title="Đóng / Mở menu điều hướng">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <span class="fw-semibold text-secondary small">Chi tiết Đầu sách &amp; Tình trạng Kho</span>
+                </div>
+
+                <div class="dropdown">
+                    <button class="admin-topbar-pill dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <span id="admin-topbar-avatar" class="admin-topbar-avatar">Q</span>
+                        <span id="admin-topbar-name">Quản trị Thư viện</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li><a class="dropdown-item py-2" href="profile.html"><i class="bi bi-person-badge me-2"></i>Hồ sơ cá nhân</a></li>
+                        <li><a class="dropdown-item py-2" href="admin/books.html"><i class="bi bi-book-half me-2"></i>Quản lý kho sách</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button id="btn-admin-topbar-logout" type="button" class="dropdown-item py-2 text-danger"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</button></li>
+                    </ul>
+                </div>
+            </header>
+
+            <!-- Tiêu đề trang dành riêng cho Admin Theme -->
+            <div class="admin-heading-wrap admin-only-block">
+                <div>
+                    <h1 class="admin-heading-title">Chi tiết Đầu sách</h1>
+                    <p class="admin-heading-sub">Thông tin chi tiết đầu sách, mã ISBN, danh mục và số lượng bản sách còn trong kho.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="index.html" class="btn btn-outline-secondary rounded-3 fw-semibold px-3 py-2">
+                        <i class="bi bi-arrow-left me-1"></i>Quay lại danh mục
+                    </a>
+                    <a href="admin/books.html" class="btn-admin-purple">
+                        <i class="bi bi-pencil-square me-1"></i>Chỉnh sửa trong Kho sách
+                    </a>
+                </div>
+            </div>
+
+            <div class="readowl-canvas">
+                <!-- Thanh Topbar (chỉ hiện ở ReadOwl mode) -->
+                <div class="canvas-topbar mb-4 owl-only-block">
+                    <button id="btn-hamburger-toggle" type="button" class="btn-owl-hamburger" title="Đóng / Mở thanh điều hướng">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <a href="index.html" class="btn btn-sm btn-outline-secondary rounded-3 fw-semibold">
+                        <i class="bi bi-arrow-left me-1"></i>Quay lại Kệ sách Tra cứu
+                    </a>
+                    <span class="small fw-bold ms-auto" style="color: #6b5748;">
+                        Chi tiết đầu sách &amp; Đăng ký mượn trực tuyến
+                    </span>
+                </div>
+
+                <!-- Thông báo trạng thái -->
+                <div id="detail-alert" class="alert d-none mb-3" role="alert"></div>
+
+                <!-- Đang tải -->
+                <div id="detail-loading" class="text-center py-5 text-secondary">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Đang tải thông tin chi tiết sách...</span>
+                </div>
+
+                <!-- Không tìm thấy sách -->
+                <div id="detail-not-found" class="text-center py-5 bg-white rounded-4 shadow-sm d-none">
+                    <i class="bi bi-exclamation-circle fs-1 text-danger d-block mb-2"></i>
+                    <h2 class="h5 fw-bold mb-1">Không tìm thấy đầu sách</h2>
+                    <p id="not-found-msg" class="small text-secondary mb-3">Đầu sách bạn yêu cầu không tồn tại hoặc đã ngừng phục vụ.</p>
+                    <a href="index.html" class="btn btn-dark btn-sm px-4 rounded-3">Về trang tra cứu sách</a>
+                </div>
+
+                <!-- Nội dung chi tiết sách -->
+                <div id="detail-content" class="bg-white rounded-4 p-4 p-md-5 shadow-sm d-none">
+                    <div class="row g-4 align-items-start">
+                        <!-- Cột trái: Bìa sách 3D lớn + Kệ đỡ -->
+                        <div class="col-md-4 col-lg-3 text-center">
+                            <div class="d-inline-block">
+                                <div
+                                    id="book-cover-3d"
+                                    class="book-cover-card mx-auto"
+                                    style="width: 185px; height: 262px; padding: 18px 16px;"
+                                >
+                                    <span id="cover-cat-text" class="book-cover-category" style="font-size: 11px;"></span>
+                                    <span id="cover-title-text" class="book-cover-title" style="font-size: 18px;"></span>
+                                    <span id="cover-author-text" class="book-cover-author" style="font-size: 12px;"></span>
+                                </div>
+                                <div class="shelf-ledge mt-1" style="width: 220px;"></div>
+                            </div>
+                            <div class="mt-3">
+                                <span id="book-availability-badge" class="book-stock-tag"></span>
+                            </div>
+                        </div>
+
+                        <!-- Cột phải: Thông tin chi tiết & Nút mượn -->
+                        <div class="col-md-8 col-lg-9">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <span id="book-category" class="badge bg-secondary-subtle text-dark px-3 py-2 rounded-pill"></span>
+                                <span id="book-isbn-badge" class="badge bg-light text-secondary border px-3 py-2 rounded-pill"></span>
+                            </div>
+
+                            <h1 id="book-title" class="h3 fw-bold mb-1" style="color: #4a3b32;"></h1>
+                            <p class="text-secondary mb-4">
+                                Tác giả: <strong id="book-author" class="text-dark"></strong>
+                            </p>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-sm-6 col-lg-3">
+                                    <div class="p-3 rounded-3 bg-light border">
+                                        <div class="small text-secondary">Mã ISBN</div>
+                                        <div id="book-isbn" class="fw-bold small mt-1"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <div class="p-3 rounded-3 bg-light border">
+                                        <div class="small text-secondary">Nhà xuất bản</div>
+                                        <div id="book-publisher" class="fw-bold small mt-1"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <div class="p-3 rounded-3 bg-light border">
+                                        <div class="small text-secondary">Năm xuất bản</div>
+                                        <div id="book-year" class="fw-bold small mt-1"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 col-lg-3">
+                                    <div class="p-3 rounded-3 bg-light border">
+                                        <div class="small text-secondary">Số bản khả dụng</div>
+                                        <div id="book-copies" class="fw-bold small mt-1 text-success"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <h3 class="h6 fw-bold mb-2" style="color: #6b5748;">Mô tả nội dung</h3>
+                                <p id="book-description" class="text-secondary mb-0" style="line-height: 1.7;"></p>
+                            </div>
+
+                            <div class="border-top pt-3 d-flex flex-wrap align-items-center gap-3">
+                                <button id="btn-borrow-book" type="button" class="btn btn-dark px-4 py-2 rounded-3 fw-semibold">
+                                    <i class="bi bi-journal-plus me-2"></i>Đăng ký mượn sách này
+                                </button>
+                                <span id="borrow-hint" class="small text-secondary"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

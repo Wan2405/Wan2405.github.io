@@ -1,5 +1,14 @@
 {
+    "name": "tdtu/library-rest-api",
+    "description": "He thong thu vien muon-tra sach su dung REST API (Midterm 503073)",
+    "type": "project",
     "require": {
-        "firebase/php-jwt": "*"
+        "php": ">=8.1",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "firebase/php-jwt": "^6.10"
+    },
+    "config": {
+        "sort-packages": true
     }
 }

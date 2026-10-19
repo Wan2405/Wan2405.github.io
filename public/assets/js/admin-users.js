@@ -140,7 +140,7 @@ function hideBanner() {
    ========================================================================== */
 async function verifyAdminSession() {
     if (!sessionStorage.getItem('token')) {
-        window.location.replace('/login.html');
+        window.location.replace('../login.html');
         return false;
     }
 
@@ -150,7 +150,7 @@ async function verifyAdminSession() {
 
         // Nếu là độc giả (Member), chuyển thẳng về giao diện thư viện mượn sách
         if (user.role !== 'admin') {
-            window.location.replace('/my-loans.html');
+            window.location.replace('../my-loans.html');
             return false;
         }
 
@@ -164,7 +164,7 @@ async function verifyAdminSession() {
         return true;
     } catch (error) {
         if (error.status === 401) {
-            window.location.replace('/login.html');
+            window.location.replace('../login.html');
             return false;
         }
         showBanner('error', error.message || 'Không kiểm tra được phiên đăng nhập.');
@@ -205,7 +205,7 @@ async function loadUsers() {
         renderPagination(meta);
     } catch (error) {
         if (error.status === 401) {
-            window.location.replace('/login.html');
+            window.location.replace('../login.html');
             return;
         }
         showBanner('error', error.message || 'Không tải được danh sách độc giả.');
@@ -298,7 +298,7 @@ function renderUsersTable(users) {
         // Nút Chi tiết
         const btnDetail = document.createElement('button');
         btnDetail.type = 'button';
-        btnDetail.className = 'btn btn-sm btn-outline-primary';
+        btnDetail.className = 'btn btn-sm btn-primary text-white';
         btnDetail.title = 'Xem chi tiết & lịch sử mượn';
         btnDetail.textContent = 'Chi tiết';
         btnDetail.addEventListener('click', function () {
@@ -308,7 +308,7 @@ function renderUsersTable(users) {
         // Nút Khóa / Mở khóa
         const btnToggle = document.createElement('button');
         btnToggle.type = 'button';
-        btnToggle.className = 'btn btn-sm ' + (isActive ? 'btn-outline-warning text-dark' : 'btn-outline-success');
+        btnToggle.className = 'btn btn-sm text-white ' + (isActive ? 'btn-warning' : 'btn-success');
         btnToggle.textContent = isActive ? 'Khóa' : 'Mở khóa';
         btnToggle.addEventListener('click', function () {
             openActionConfirmModal('toggle', user);
@@ -317,7 +317,7 @@ function renderUsersTable(users) {
         // Nút Xóa User
         const btnDelete = document.createElement('button');
         btnDelete.type = 'button';
-        btnDelete.className = 'btn btn-sm btn-outline-danger';
+        btnDelete.className = 'btn btn-sm btn-danger text-white';
         btnDelete.title = 'Xóa tài khoản độc giả';
         btnDelete.textContent = 'Xóa';
         btnDelete.addEventListener('click', function () {
@@ -440,7 +440,7 @@ async function openUserDetailModal(userId) {
         detailModalInstance.show();
     } catch (error) {
         if (error.status === 401) {
-            window.location.replace('/login.html');
+            window.location.replace('../login.html');
             return;
         }
         showBanner('error', error.message || 'Không tải được hồ sơ độc giả.');
@@ -521,7 +521,7 @@ document.getElementById('btn-confirm-submit').addEventListener('click', async fu
             confirmModalInstance.hide();
         }
         if (error.status === 401) {
-            window.location.replace('/login.html');
+            window.location.replace('../login.html');
             return;
         }
         showBanner('error', error.message || 'Không thể thực hiện thao tác.');
@@ -605,7 +605,7 @@ btnNextPage.addEventListener('click', function () {
 
 function handleLogout() {
     sessionStorage.removeItem('token');
-    window.location.replace('/login.html');
+    window.location.replace('../login.html');
 }
 
 document.getElementById('btn-sidebar-logout').addEventListener('click', handleLogout);

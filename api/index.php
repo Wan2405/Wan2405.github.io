@@ -1,199 +1,188 @@
 <?php
+declare(strict_types=1);
 
+/**
+ * Front Controller / REST API Router cho toàn bộ hệ thống `/api/v1/*`
+ * Tích hợp đầy đủ các module của Người 1 (auth, users, loans) và Người 2 (categories, books, statistics).
+ */
 require_once __DIR__ . '/common/response.php';
-require_once __DIR__ . '/common/request.php';
 require_once __DIR__ . '/common/db.php';
+require_once __DIR__ . '/common/request.php';
+require_once __DIR__ . '/common/auth.php';
 
-date_default_timezone_set('Asia/Ho_Chi_Minh');
-header('Cache-Control: no-store');
+handleCorsAndPreflight();
 
-$path = rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
-$method = $_SERVER['REQUEST_METHOD'];
+set_exception_handler(static function (Throwable $e): void {
+    error_log(sprintf('[Library REST API Error] %s in %s:%d', $e->getMessage(), $e->getFile(), $e->getLine()));
+    sendError(500, 'SERVER_ERROR', 'Lỗi hệ thống nội bộ.');
+});
 
-try {
-    // --- MODULE XAC THUC & TAI KHOAN (AUTH) ---
-    if ($path === '/api/v1/auth/register') {
-        if ($method !== 'POST') {
-            header('Allow: POST');
-            sendError(405, 'METHOD_NOT_ALLOWED', 'Chức năng đăng ký sử dụng phương thức POST.');
-        }
-        require __DIR__ . '/modules/auth/register.php';
+$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$uriPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+// Hỗ trợ cả khi chạy qua router.php (/api/v1/...) lẫn khi chạy dưới thư mục con XAMPP (/LTW-GK/api/v1/...)
+$routePath = '';
+if (isset($_GET['_route'])) {
+    $routePath = trim((string) $_GET['_route'], '/');
+} elseif (preg_match('#/api/v1(?:/(.*))?$#', $uriPath, $matches)) {
+    $routePath = isset($matches[1]) ? trim($matches[1], '/') : '';
+}
+
+$segments = $routePath === '' ? [] : explode('/', $routePath);
+$resource = $segments[0] ?? '';
+$subSegment = $segments[1] ?? null;
+$extraSegment = $segments[2] ?? null;
+
+// 0. Healthcheck endpoint
+if ($resource === '' || $resource === 'health') {
+    if ($method !== 'GET') {
+        sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được phép.');
     }
 
-    if ($path === '/api/v1/auth/login') {
-        if ($method !== 'POST') {
-            header('Allow: POST');
-            sendError(405, 'METHOD_NOT_ALLOWED', 'Chức năng đăng nhập sử dụng phương thức POST.');
-        }
-        require_once __DIR__ . '/common/auth.php';
-        require __DIR__ . '/modules/auth/login.php';
-    }
+    $pdo = getConnection();
+    $dbStatus = (int) $pdo->query('SELECT 1')->fetchColumn() === 1 ? 'connected' : 'error';
 
-    if ($path === '/api/v1/auth/me' || $path === '/api/v1/me') {
+    jsonSuccess([
+        'service'   => 'Library Management REST API',
+        'version'   => 'v1',
+        'db_status' => $dbStatus,
+        'timestamp' => date('c'),
+    ], 'Hệ thống REST API đang hoạt động bình thường.');
+}
+
+// Không cho phép đường dẫn vượt quá 2 phân đoạn (/api/v1/{resource}/{id_or_sub})
+if ($extraSegment !== null) {
+    sendError(404, 'NOT_FOUND', 'Không tìm thấy đường dẫn yêu cầu.');
+}
+
+switch ($resource) {
+    // =========================================================================
+    // NGƯỜI 1: XÁC THỰC & TÀI KHOẢN (AUTH)
+    // =========================================================================
+    case 'auth':
+        if ($subSegment === 'register') {
+            if ($method !== 'POST') {
+                sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+            }
+            require __DIR__ . '/modules/auth/register.php';
+            exit;
+        }
+
+        if ($subSegment === 'login') {
+            if ($method !== 'POST') {
+                sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+            }
+            require __DIR__ . '/modules/auth/login.php';
+            exit;
+        }
+
+        if ($subSegment === 'me') {
+            if ($method !== 'GET') {
+                header('Allow: GET');
+                sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+            }
+            require __DIR__ . '/modules/auth/me.php';
+            exit;
+        }
+
+        sendError(404, 'NOT_FOUND', 'Không tìm thấy đường dẫn xác thực.');
+
+    case 'me':
+        if ($subSegment !== null) {
+            sendError(404, 'NOT_FOUND', 'Không tìm thấy đường dẫn yêu cầu.');
+        }
         if ($method !== 'GET') {
             header('Allow: GET');
-            sendError(405, 'METHOD_NOT_ALLOWED', 'Chức năng xem tài khoản sử dụng phương thức GET.');
+            sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
         }
-        require_once __DIR__ . '/common/auth.php';
         require __DIR__ . '/modules/auth/me.php';
-    }
+        exit;
 
-    // --- MODULE QUAN LY DOC GIA (USERS) ---
-    if ($path === '/api/v1/users') {
-        if ($method !== 'GET') {
-            header('Allow: GET');
-            sendError(405, 'METHOD_NOT_ALLOWED', 'Danh sách độc giả chỉ hỗ trợ phương thức GET.');
+    // =========================================================================
+    // NGƯỜI 1: QUẢN LÝ ĐỘC GIẢ (USERS)
+    // =========================================================================
+    case 'users':
+        if ($subSegment === null) {
+            if ($method !== 'GET') {
+                sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+            }
+            require __DIR__ . '/modules/users/list.php';
+            exit;
         }
-        require_once __DIR__ . '/common/auth.php';
-        require __DIR__ . '/modules/users/list.php';
-    }
 
-    if (preg_match('#^/api/v1/users/([^/]+)$#', $path, $matches)) {
-        $idParam = $matches[1];
-        if (!ctype_digit($idParam) || (int) $idParam < 1 || (int) $idParam > 4294967295) {
+        if (!ctype_digit($subSegment) || (int) $subSegment < 1) {
             sendError(404, 'NOT_FOUND', 'Không tìm thấy độc giả.');
         }
-        $targetUserId = (int) $idParam;
 
+        $targetUserId = (int) $subSegment;
         if ($method === 'GET') {
-            require_once __DIR__ . '/common/auth.php';
             require __DIR__ . '/modules/users/detail.php';
+            exit;
         }
-
         if ($method === 'PATCH') {
-            require_once __DIR__ . '/common/auth.php';
             require __DIR__ . '/modules/users/update-status.php';
+            exit;
         }
-
         if ($method === 'DELETE') {
-            require_once __DIR__ . '/common/auth.php';
             require __DIR__ . '/modules/users/delete.php';
+            exit;
         }
 
-        header('Allow: GET, PATCH, DELETE');
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Tài nguyên độc giả chỉ hỗ trợ phương thức GET, PATCH và DELETE.');
-    }
+        sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
 
-    // --- MODULE MUON - TRA SACH (LOANS) ---
-    if ($path === '/api/v1/loans') {
-        if ($method === 'GET') {
-            require_once __DIR__ . '/common/auth.php';
-            require __DIR__ . '/modules/loans/list.php';
+    // =========================================================================
+    // NGƯỜI 1: QUẢN LÝ MƯỢN – TRẢ SÁCH (LOANS)
+    // =========================================================================
+    case 'loans':
+        if ($subSegment === null) {
+            if ($method === 'GET') {
+                require __DIR__ . '/modules/loans/list.php';
+                exit;
+            }
+            if ($method === 'POST') {
+                require __DIR__ . '/modules/loans/create.php';
+                exit;
+            }
+            sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
         }
 
-        if ($method === 'POST') {
-            require_once __DIR__ . '/common/auth.php';
-            require __DIR__ . '/modules/loans/create.php';
-        }
-
-        header('Allow: GET, POST');
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Đường dẫn phiếu mượn chỉ hỗ trợ phương thức GET và POST.');
-    }
-
-    if (preg_match('#^/api/v1/loans/([^/]+)$#', $path, $loanMatches)) {
-        $loanIdParam = $loanMatches[1];
-        if (!ctype_digit($loanIdParam) || (int) $loanIdParam < 1 || (int) $loanIdParam > 4294967295) {
+        if (!ctype_digit($subSegment) || (int) $subSegment < 1) {
             sendError(404, 'NOT_FOUND', 'Không tìm thấy phiếu mượn.');
         }
-        $targetLoanId = (int) $loanIdParam;
 
+        $targetLoanId = (int) $subSegment;
         if ($method === 'GET') {
-            require_once __DIR__ . '/common/auth.php';
             require __DIR__ . '/modules/loans/detail.php';
+            exit;
         }
-
         if ($method === 'PATCH') {
-            require_once __DIR__ . '/common/auth.php';
             require __DIR__ . '/modules/loans/update.php';
+            exit;
         }
 
-        header('Allow: GET, PATCH');
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Tài nguyên phiếu mượn chỉ hỗ trợ phương thức GET và PATCH.');
-    }
+        sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
 
-    // --- MODULE SACH (BOOKS) ---
-    if ($path === '/api/v1/books') {
-        if ($method === 'GET') {
-            require __DIR__ . '/modules/books/public-list.php';
-        }
-        if ($method === 'POST') {
-            require_once __DIR__ . '/common/auth.php';
-            require __DIR__ . '/modules/books/manage.php';
-        }
-        header('Allow: GET, POST');
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Đường dẫn sách hỗ trợ phương thức GET và POST.');
-    }
+    // =========================================================================
+    // NGƯỜI 2: QUẢN LÝ DANH MỤC SÁCH (CATEGORIES)
+    // =========================================================================
+    case 'categories':
+        require_once __DIR__ . '/modules/categories/routes.php';
+        handleCategoryRoutes($method, $subSegment);
 
-    if (preg_match('#^/api/v1/books/([^/]+)$#', $path, $bookMatches)) {
-        $bookIdParam = $bookMatches[1];
-        if (!ctype_digit($bookIdParam) || (int) $bookIdParam < 1 || (int) $bookIdParam > 4294967295) {
-            sendError(404, 'NOT_FOUND', 'Không tìm thấy đầu sách.');
-        }
-        $targetBookId = (int) $bookIdParam;
+    // =========================================================================
+    // NGƯỜI 2: QUẢN LÝ SÁCH & TRA CỨU CÔNG KHAI (BOOKS)
+    // =========================================================================
+    case 'books':
+        require_once __DIR__ . '/modules/books/routes.php';
+        handleBookRoutes($method, $subSegment);
 
-        if ($method === 'GET') {
-            require __DIR__ . '/modules/books/manage.php';
-        }
-        if ($method === 'PUT' || $method === 'DELETE') {
-            require_once __DIR__ . '/common/auth.php';
-            require __DIR__ . '/modules/books/manage.php';
-        }
+    // =========================================================================
+    // NGƯỜI 2: THỐNG KÊ HỆ THỐNG (STATISTICS)
+    // =========================================================================
+    case 'statistics':
+        require_once __DIR__ . '/modules/statistics/routes.php';
+        handleStatisticsRoutes($method, $subSegment);
 
-        header('Allow: GET, PUT, DELETE');
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Tài nguyên đầu sách hỗ trợ phương thức GET, PUT và DELETE.');
-    }
-
-    // --- MODULE DANH MUC (CATEGORIES) ---
-    if ($path === '/api/v1/categories') {
-        if ($method === 'GET') {
-            require __DIR__ . '/modules/categories/manage.php';
-        }
-        if ($method === 'POST') {
-            require_once __DIR__ . '/common/auth.php';
-            require __DIR__ . '/modules/categories/manage.php';
-        }
-        header('Allow: GET, POST');
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Đường dẫn danh mục hỗ trợ phương thức GET và POST.');
-    }
-
-    if (preg_match('#^/api/v1/categories/([^/]+)$#', $path, $catMatches)) {
-        $catIdParam = $catMatches[1];
-        if (!ctype_digit($catIdParam) || (int) $catIdParam < 1 || (int) $catIdParam > 4294967295) {
-            sendError(404, 'NOT_FOUND', 'Không tìm thấy danh mục sách.');
-        }
-        $targetCategoryId = (int) $catIdParam;
-
-        if ($method === 'GET') {
-            require __DIR__ . '/modules/categories/manage.php';
-        }
-        if ($method === 'PUT' || $method === 'DELETE') {
-            require_once __DIR__ . '/common/auth.php';
-            require __DIR__ . '/modules/categories/manage.php';
-        }
-
-        header('Allow: GET, PUT, DELETE');
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Tài nguyên danh mục hỗ trợ phương thức GET, PUT và DELETE.');
-    }
-
-    // --- MODULE THONG KE (STATISTICS) ---
-    if ($path === '/api/v1/statistics') {
-        if ($method === 'GET') {
-            require_once __DIR__ . '/common/auth.php';
-            require __DIR__ . '/modules/statistics/summary.php';
-        }
-        header('Allow: GET');
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Đường dẫn thống kê chỉ hỗ trợ phương thức GET.');
-    }
-
-    sendError(404, 'NOT_FOUND', 'Không tìm thấy API.');
-} catch (Throwable $e) {
-    error_log($e->getMessage());
-    if ($e instanceof PDOException && strpos($e->getMessage(), '2002') !== false) {
-        sendError(
-            500,
-            'DATABASE_OFFLINE',
-            'Chưa bật MySQL! Vui lòng mở XAMPP Control Panel và nhấn nút Start ở dòng MySQL.'
-        );
-    }
-    sendError(500, 'SERVER_ERROR', 'Máy chủ gặp lỗi. Vui lòng thử lại sau.');
+    default:
+        sendError(404, 'NOT_FOUND', sprintf("Tài nguyên '/api/v1/%s' không tồn tại.", $resource));
 }

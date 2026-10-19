@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+  title: Library REST API - Categories, Books & Statistics (Người 2)
+  version: 1.0.0
+  description: |
+    Đặc tả OpenAPI 3.0 cho các phân hệ thuộc trách nhiệm của Người 2:
+    - Quản lý danh mục (`/categories`)
+    - Quản lý sách, tồn kho & tra cứu công khai (`/books`)
+    - Thống kê thư viện (`/statistics`)
+servers:
+  - url: http://localhost/LTW-GK/api/v1
+    description: Local XAMPP Server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required: [code, message, fields]
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Dữ liệu đầu vào không hợp lệ.
+            fields:
+              type: object
+              additionalProperties:
+                type: string
+
+    PaginationMeta:
+      type: object
+      required: [page, limit, total, total_pages]
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 18
+        total_pages:
+          type: integer
+          example: 2
+
+    Category:
+      type: object
+      required: [id, name, description, book_count]
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Công nghệ phần mềm
+        description:
+          type: string
+          nullable: true
+          example: Sách về kiến trúc phần mềm, thiết kế API và mã sạch.
+        book_count:
+          type: integer
+          example: 6
+
+    CategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Điện toán đám mây
+        description:
+          type: string
+          nullable: true
+          maxLength: 2000
+          example: Sách về kiến trúc Cloud, Docker và Kubernetes.
+
+    Book:
+      type: object
+      required:
+        - id
+        - category_id
+        - title
+        - author
+        - total_copies
+        - available_copies
+        - borrowed_copies
+        - is_active
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          example: 1
+        category_id:
+          type: integer
+          example: 1
+        category_name:
+          type: string
+          example: Công nghệ phần mềm
+        title:
+          type: string
+          example: "Clean Code: Mã sạch và Con đường trở thành Lập trình viên Giỏi"
+        author:
+          type: string
+          example: Robert C. Martin
+        publisher:
+          type: string
+          nullable: true
+          example: NXB Trẻ
+        publication_year:
+          type: integer
+          nullable: true
+          example: 2020
+        description:
+          type: string
+          nullable: true
+        cover_path:
+          type: string
+          example: assets/images/covers/clean-code.svg
+        total_copies:
+          type: integer
+          minimum: 0
+          example: 5
+        available_copies:
+          type: integer
+          minimum: 0
+          example: 4
+        borrowed_copies:
+          type: integer
+          minimum: 0
+          example: 1
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          example: "2026-09-01 08:30:00"
+        updated_at:
+          type: string
+          example: "2026-09-01 08:30:00"
+
+    BookInput:
+      type: object
+      required: [title, author, category_id, total_copies]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        author:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category_id:
+          type: integer
+          minimum: 1
+        publisher:
+          type: string
+          nullable: true
+          maxLength: 200
+        publication_year:
+          type: integer
+          nullable: true
+          minimum: 1000
+          maximum: 2100
+        description:
+          type: string
+          nullable: true
+          maxLength: 5000
+        cover_path:
+          type: string
+          nullable: true
+          example: assets/images/covers/clean-code.svg
+        total_copies:
+          type: integer
+          minimum: 0
+        is_active:
+          type: boolean
+          default: true
+
+paths:
+  /categories:
+    get:
+      tags: [Categories]
+      summary: Danh sách danh mục sách (DM01 - Công khai)
+      responses:
+        '200':
+          description: Trả về danh sách danh mục
+    post:
+      tags: [Categories]
+      summary: Thêm danh mục mới (DM02 - Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '201':
+          description: Tạo danh mục thành công kèm header Location
+        '401':
+          description: Chưa đăng nhập hoặc token không hợp lệ
+        '403':
+          description: Không có quyền Admin
+        '409':
+          description: Tên danh mục bị trùng (Test B03)
+        '422':
+          description: Dữ liệu đầu vào không hợp lệ
+
+  /categories/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Categories]
+      summary: Xem chi tiết một danh mục (DM01 - Công khai)
+      responses:
+        '200':
+          description: Thông tin danh mục
+        '404':
+          description: Không tìm thấy danh mục
+    put:
+      tags: [Categories]
+      summary: Cập nhật danh mục (DM03 - Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '200':
+          description: Cập nhật thành công
+        '404':
+          description: Không tìm thấy danh mục
+        '409':
+          description: Trùng tên với danh mục khác
+        '422':
+          description: Dữ liệu không hợp lệ
+    delete:
+      tags: [Categories]
+      summary: Xóa danh mục chưa có sách tham chiếu (DM04 - Admin)
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Xóa thành công (No Content)
+        '404':
+          description: Không tìm thấy danh mục
+        '409':
+          description: Danh mục đang có sách tham chiếu (Test B04)
+
+  /books:
+    get:
+      tags: [Books]
+      summary: Tra cứu, lọc, sắp xếp và phân trang sách (S01, TC01-TC05)
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Tìm theo tên sách hoặc tác giả
+        - in: query
+          name: category_id
+          schema:
+            type: integer
+        - in: query
+          name: available
+          schema:
+            type: boolean
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [title, created_at]
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - in: query
+          name: include_inactive
+          schema:
+            type: boolean
+          description: Chỉ Admin được truyền true (Guest/Member truyền true sẽ nhận 403)
+      responses:
+        '200':
+          description: Danh sách sách kèm meta phân trang và header ETag
+        '304':
+          description: Not Modified (khi If-None-Match khớp ETag)
+        '403':
+          description: Guest/Member truyền include_inactive=true
+        '422':
+          description: Tham số lọc/sắp xếp/phân trang sai định dạng (Test B15)
+    post:
+      tags: [Books]
+      summary: Thêm đầu sách mới (S03 - Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+      responses:
+        '201':
+          description: Tạo đầu sách thành công kèm header Location (available_copies = total_copies)
+        '401':
+          description: Chưa đăng nhập
+        '403':
+          description: Không phải Admin
+        '422':
+          description: Dữ liệu không hợp lệ (category không tồn tại, total_copies âm/thập phân, cover_path chứa ../ - Test B06, B22)
+
+  /books/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Books]
+      summary: Chi tiết đầu sách (S02 - Công khai nếu active; Admin xem cả inactive)
+      responses:
+        '200':
+          description: Chi tiết đầu sách
+        '304':
+          description: Not Modified
+        '404':
+          description: Không tìm thấy hoặc sách đã ngừng cho mượn đối với người dùng thường (Test B12)
+    put:
+      tags: [Books]
+      summary: Cập nhật thông tin sách & tổng số bản bằng giao tác FOR UPDATE (S04, S05, S06 - Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+      responses:
+        '200':
+          description: Cập nhật thành công (tự động điều chỉnh available_copies theo delta)
+        '404':
+          description: Không tìm thấy đầu sách
+        '409':
+          description: Giảm total_copies thấp hơn số bản đang được mượn (Test B08)
+        '422':
+          description: Dữ liệu đầu vào không hợp lệ
+    delete:
+      tags: [Books]
+      summary: Xóa đầu sách chưa từng có lịch sử mượn-trả (S07 - Admin)
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Xóa thành công (Test B10)
+        '404':
+          description: Không tìm thấy đầu sách
+        '409':
+          description: Sách đã từng xuất hiện trong bảng loans (Test B11)
+
+  /statistics:
+    get:
+      tags: [Statistics]
+      summary: Thống kê tổng hợp thư viện (Mục E & Test B17 - Chỉ Admin)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Trả về 8 chỉ số thống kê và bảng xếp hạng sách mượn nhiều nhất
+        '401':
+          description: Chưa đăng nhập
+        '403':
+          description: Không có quyền Admin

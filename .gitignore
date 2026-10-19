@@ -1,9 +1,13 @@
+# Secret configuration (never commit real secrets or tokens)
+/config/config.php
 
+# Composer dependencies
 /vendor/
 
-/config/jwt-secret.php
+# OS & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 
-/vendor/
 /config/jwt-secret.php
-*.zip
-*_backup.sql

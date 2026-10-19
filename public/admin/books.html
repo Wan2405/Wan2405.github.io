@@ -33,6 +33,7 @@
                     <li><a href="/admin/loans.html" class="sidebar-link"><i class="bi bi-journal-arrow-up"></i><span>Quản lý mượn – trả</span></a></li>
                     <li><a href="/admin/books.html" class="sidebar-link active"><i class="bi bi-book-half"></i><span>Quản lý kho sách</span></a></li>
                     <li><a href="/admin/categories.html" class="sidebar-link"><i class="bi bi-tags-fill"></i><span>Quản lý danh mục</span></a></li>
+                    <li><a href="/index.html" class="sidebar-link"><i class="bi bi-search"></i><span>Tra cứu sách công khai</span></a></li>
                 </ul>
 
                 <ul class="sidebar-nav sidebar-nav-bottom">
@@ -50,7 +51,7 @@
                     </button>
                     <form id="topbar-search-form" class="topbar-search-wrapper" role="search">
                         <i class="bi bi-search"></i>
-                        <input id="search-input" type="search" class="topbar-search-input" placeholder="Tìm kiếm đầu sách theo tên hoặc tác giả...">
+                        <input id="search-input" type="search" class="topbar-search-input" placeholder="Tìm kiếm đầu sách theo tên, tác giả hoặc ISBN...">
                     </form>
                 </div>
 
@@ -62,6 +63,7 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
                             <li><a class="dropdown-item py-2" href="/profile.html"><i class="bi bi-person-badge me-2"></i>Hồ sơ cá nhân</a></li>
+                            <li><a class="dropdown-item py-2" href="/index.html"><i class="bi bi-book me-2"></i>Trang tra cứu công khai</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><button id="btn-topbar-logout" type="button" class="dropdown-item py-2 text-danger"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</button></li>
                         </ul>
@@ -109,7 +111,7 @@
 
     <!-- Modal Thêm / Sửa Đầu sách -->
     <div class="modal fade" id="bookFormModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content border-0 shadow">
                 <form id="book-form">
                     <div class="modal-header bg-light">
@@ -118,36 +120,56 @@
                     </div>
                     <div class="modal-body">
                         <input id="book-id-input" type="hidden">
-                        <div class="mb-3">
-                            <label for="book-title-input" class="form-label small fw-bold">Tên đầu sách *</label>
-                            <input id="book-title-input" type="text" class="form-control" maxlength="200" required>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-8">
+                                <label for="book-title-input" class="form-label small fw-bold">Tên đầu sách *</label>
+                                <input id="book-title-input" type="text" class="form-control" maxlength="200" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="book-isbn-input" class="form-label small fw-bold">Mã ISBN</label>
+                                <input id="book-isbn-input" type="text" class="form-control" maxlength="20" placeholder="VD: 978-604-...">
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="book-author-input" class="form-label small fw-bold">Tác giả *</label>
-                            <input id="book-author-input" type="text" class="form-control" maxlength="200" required>
-                        </div>
-                        <div class="row g-2 mb-3">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="book-author-input" class="form-label small fw-bold">Tác giả *</label>
+                                <input id="book-author-input" type="text" class="form-control" maxlength="200" required>
+                            </div>
                             <div class="col-md-6">
                                 <label for="book-category-input" class="form-label small fw-bold">Danh mục *</label>
                                 <select id="book-category-input" class="form-select" required></select>
                             </div>
-                            <div class="col-md-6">
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
                                 <label for="book-copies-input" class="form-label small fw-bold">Tổng số bản *</label>
                                 <input id="book-copies-input" type="number" min="0" max="10000" class="form-control" value="3" required>
                             </div>
-                        </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="book-publisher-input" class="form-label small fw-bold">Nhà xuất bản</label>
                                 <input id="book-publisher-input" type="text" class="form-control" maxlength="200">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="book-year-input" class="form-label small fw-bold">Năm xuất bản</label>
                                 <input id="book-year-input" type="number" min="1000" max="2100" class="form-control">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="book-desc-input" class="form-label small fw-bold">Mô tả</label>
+                            <label for="book-cover-input" class="form-label small fw-bold">Ảnh bìa nội bộ (cover_path)</label>
+                            <select id="book-cover-input" class="form-select">
+                                <option value="assets/images/covers/default-book.svg">Mặc định (default-book.svg)</option>
+                                <option value="assets/images/covers/clean-code.svg">Clean Code (clean-code.svg)</option>
+                                <option value="assets/images/covers/web-php-mysql.svg">Web PHP &amp; MySQL (web-php-mysql.svg)</option>
+                                <option value="assets/images/covers/algorithms.svg">Cấu trúc dữ liệu &amp; Giải thuật (algorithms.svg)</option>
+                                <option value="assets/images/covers/thinking-fast-slow.svg">Tư duy nhanh và chậm (thinking-fast-slow.svg)</option>
+                                <option value="assets/images/covers/sapiens.svg">Sapiens (sapiens.svg)</option>
+                                <option value="assets/images/covers/de-men.svg">Dế Mèn phiêu lưu ký (de-men.svg)</option>
+                                <option value="assets/images/covers/nha-gia-kim.svg">Nhà giả kim (nha-gia-kim.svg)</option>
+                                <option value="assets/images/covers/mat-biec.svg">Mắt biếc (mat-biec.svg)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="book-desc-input" class="form-label small fw-bold">Mô tả chi tiết</label>
                             <textarea id="book-desc-input" class="form-control" rows="2"></textarea>
                         </div>
                         <div id="book-active-wrap" class="form-check">

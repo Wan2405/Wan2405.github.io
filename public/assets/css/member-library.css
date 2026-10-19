@@ -23,21 +23,22 @@
 
 body {
     margin: 0;
-    padding: 18px;
+    padding: 0;
     background: var(--owl-outer-bg);
     color: var(--owl-text-main);
     font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     min-height: 100vh;
 }
 
-/* Khung bo góc lớn giống máy tính bảng / ứng dụng trong Ảnh 2 */
+/* Khung hiển thị linh hoạt tự thích ứng theo mọi độ phân giải */
 .readowl-shell {
-    max-width: 1440px;
-    min-height: calc(100vh - 36px);
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    margin: 0;
     background: var(--owl-frame-bg);
-    border-radius: 28px;
-    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1), 0 0 0 6px rgba(255, 255, 255, 0.8);
+    border-radius: 0;
+    box-shadow: none;
     display: flex;
     position: relative;
     overflow: hidden;
@@ -51,11 +52,18 @@ body {
     flex-shrink: 0;
     background: var(--owl-frame-bg);
     border-right: 2px dashed #e2d7c8;
-    padding: 28px 20px 22px;
+    padding: 24px 16px 20px;
     display: flex;
     flex-direction: column;
-    transition: width 0.28s ease, padding 0.28s ease, opacity 0.2s ease;
-    position: relative;
+    height: 100vh;
+    max-height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #dfd3c3 transparent;
+    transition: width 0.28s ease, padding 0.28s ease, opacity 0.2s ease, transform 0.28s ease;
     z-index: 20;
 }
 
@@ -571,6 +579,82 @@ body {
     overflow-wrap: anywhere;
 }
 
+/* ==========================================================================
+   BUTTONS: CHỮ TRẮNG NỀN MÀU THEO YÊU CẦU (ÁP DỤNG MỌI TRANG)
+   ========================================================================== */
+.table .btn,
+.modern-table .btn {
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 5px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+    text-decoration: none !important;
+}
+
+.table .btn-danger,
+.table .btn-outline-danger,
+.modern-table .btn-danger,
+.modern-table .btn-outline-danger,
+.btn-danger,
+.btn-outline-danger {
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+}
+.table .btn-danger:hover,
+.table .btn-outline-danger:hover,
+.modern-table .btn-danger:hover,
+.modern-table .btn-outline-danger:hover,
+.btn-danger:hover,
+.btn-outline-danger:hover {
+    background-color: #b91c1c !important;
+    border-color: #b91c1c !important;
+    color: #ffffff !important;
+}
+
+.table .btn-purple,
+.table .btn-outline-purple,
+.modern-table .btn-purple,
+.modern-table .btn-outline-purple,
+.btn-purple,
+.btn-outline-purple {
+    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%) !important;
+    border-color: #4338ca !important;
+    color: #ffffff !important;
+}
+
+.table .btn-primary,
+.table .btn-outline-primary,
+.modern-table .btn-primary,
+.modern-table .btn-outline-primary {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+.table .btn-success,
+.table .btn-outline-success,
+.modern-table .btn-success,
+.modern-table .btn-outline-success {
+    background-color: #16a34a !important;
+    border-color: #16a34a !important;
+    color: #ffffff !important;
+}
+
+.table .btn-warning,
+.table .btn-outline-warning,
+.modern-table .btn-warning,
+.modern-table .btn-outline-warning {
+    background-color: #d97706 !important;
+    border-color: #d97706 !important;
+    color: #ffffff !important;
+}
+
 @media (max-width: 991.98px) {
     body {
         padding: 0;
@@ -579,7 +663,358 @@ body {
         border-radius: 0;
         min-height: 100vh;
     }
+    .readowl-sidebar,
+    body.admin-theme-mode .readowl-sidebar {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        height: 100vh;
+        width: 270px !important;
+        max-width: 82vw;
+        z-index: 1060;
+        transform: translateX(0);
+        box-shadow: 6px 0 25px rgba(15, 23, 42, 0.28);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #fdfbf7;
+        border-right: 1px solid #e4d9c8;
+        padding: 24px 16px 20px !important;
+        overflow-y: auto !important;
+    }
+
+    body.admin-theme-mode .readowl-sidebar {
+        background: linear-gradient(180deg, #32047a 0%, #240154 100%) !important;
+        border-right: none !important;
+    }
+
+    .readowl-shell.sidebar-collapsed .readowl-sidebar,
+    body.admin-theme-mode .readowl-shell.sidebar-collapsed .readowl-sidebar {
+        transform: translateX(-105%) !important;
+        width: 270px !important;
+        padding: 24px 16px 20px !important;
+        opacity: 1 !important;
+        pointer-events: none;
+    }
+
+    .readowl-edge-toggle {
+        display: none !important;
+    }
+
     .readowl-canvas {
-        padding: 18px;
+        padding: 18px 14px;
+    }
+
+    .canvas-topbar {
+        padding: 10px 12px;
+        gap: 8px;
+        margin-bottom: 20px;
     }
 }
+
+@media (max-width: 576px) {
+    .readowl-canvas {
+        padding: 14px 10px;
+    }
+
+    .canvas-topbar {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .canvas-tabs {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 4px;
+    }
+
+    .canvas-search-box {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .books-row {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 16px;
+        padding: 0 4px;
+    }
+
+    .book-cover-card {
+        width: 108px;
+        height: 154px;
+        padding: 10px 8px;
+    }
+
+    .book-cover-title {
+        font-size: 11.5px;
+    }
+
+    .book-caption-card {
+        max-width: 120px;
+    }
+}
+
+/* ==========================================================================
+   4. CHẾ ĐỘ ADMIN THEME (TỰ ĐỘNG BẬT KHI TÀI KHOẢN ĐĂNG NHẬP LÀ ADMIN)
+   Đồng bộ 100% Sidebar tím đậm + Topbar trắng + Workspace Card giống hệt trang Admin
+   ========================================================================== */
+.admin-only-block {
+    display: none !important;
+}
+
+body.admin-theme-mode {
+    padding: 0;
+    background: #f4f5f9;
+    color: #1e293b;
+}
+
+body.admin-theme-mode .admin-only-block {
+    display: flex !important;
+}
+
+body.admin-theme-mode .sidebar-user-box.admin-only-block,
+body.admin-theme-mode .sidebar-logo.admin-only-block {
+    display: block !important;
+}
+
+body.admin-theme-mode .owl-only-block {
+    display: none !important;
+}
+
+body.admin-theme-mode .readowl-shell {
+    max-width: none;
+    min-height: 100vh;
+    margin: 0;
+    background: #f4f5f9;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+}
+
+body.admin-theme-mode .readowl-sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, #32047a 0%, #240154 100%);
+    color: #ffffff;
+    border-right: none;
+    padding: 28px 18px 22px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+}
+
+body.admin-theme-mode .readowl-shell.sidebar-collapsed .readowl-sidebar {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body.admin-theme-mode .readowl-edge-toggle {
+    position: fixed;
+    top: 24px;
+    left: 244px;
+    width: 32px;
+    height: 32px;
+    color: #2e026d;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.16);
+}
+
+body.admin-theme-mode .readowl-shell.sidebar-collapsed .readowl-edge-toggle {
+    left: 12px;
+}
+
+body.admin-theme-mode .sidebar-logo {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #ffffff;
+    text-transform: uppercase;
+    margin-bottom: 26px;
+    text-decoration: none;
+}
+
+body.admin-theme-mode .sidebar-user-box {
+    text-align: center;
+    margin-bottom: 28px;
+    padding: 0 8px;
+}
+
+body.admin-theme-mode .sidebar-avatar {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin-bottom: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+body.admin-theme-mode .sidebar-user-name {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+body.admin-theme-mode .sidebar-user-role {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+body.admin-theme-mode .readowl-nav {
+    gap: 6px;
+}
+
+body.admin-theme-mode .readowl-nav-bottom {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.admin-theme-mode .readowl-nav-btn {
+    color: rgba(255, 255, 255, 0.82);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 11px 16px;
+}
+
+body.admin-theme-mode .readowl-nav-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.09);
+}
+
+body.admin-theme-mode .readowl-nav-btn.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.28);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+body.admin-theme-mode .readowl-main {
+    padding: 0;
+    background: #f4f5f9;
+}
+
+body.admin-theme-mode .admin-top-navbar {
+    height: 74px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0 32px 0 38px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 1010;
+}
+
+body.admin-theme-mode .admin-topbar-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+body.admin-theme-mode .admin-topbar-pill:hover {
+    background: #f1f5f9;
+}
+
+body.admin-theme-mode .admin-topbar-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #4338ca;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+body.admin-theme-mode .admin-heading-wrap {
+    padding: 30px 36px 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+body.admin-theme-mode .admin-heading-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+body.admin-theme-mode .admin-heading-sub {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: #64748b;
+}
+
+body.admin-theme-mode .btn-admin-purple {
+    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+    color: #ffffff;
+    border: none;
+    font-weight: 600;
+    padding: 9px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+}
+
+body.admin-theme-mode .btn-admin-purple:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #312e81 100%);
+    color: #ffffff;
+}
+
+body.admin-theme-mode .readowl-canvas {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+    margin: 0 36px 36px;
+    padding: 26px;
+}
+
+body.admin-theme-mode .canvas-topbar {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    box-shadow: none;
+}
+
+body.admin-theme-mode .canvas-search-input {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+}
+
+body.admin-theme-mode .shelf-title,
+body.admin-theme-mode .book-caption-title {
+    color: #0f172a;
+}
+
+body.admin-theme-mode .book-caption-sub {
+    color: #64748b;
+}
+
+body.admin-theme-mode .shelf-ledge {
+    background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+    box-shadow: 0 8px 14px rgba(15, 23, 42, 0.08);
+}
+

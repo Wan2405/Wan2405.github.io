@@ -1,0 +1,186 @@
+{
+  "info": {
+    "name": "Library REST API - Người 2 (Categories, Books, Statistics & B01-B22)",
+    "_postman_id": "784105d7-0bdf-4544-9fc4-f1dd15bd5a00",
+    "description": "Bộ kiểm thử Postman cho các API thuộc quyền sở hữu của Người 2 (Categories, Books, Statistics) bao phủ các tình huống B01-B22.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost/LTW-GK/api/v1"
+    },
+    {
+      "key": "adminToken",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJfaWQiOjEsImZ1bGxfbmFtZSI6Ik5ndXnhu4VuIFF14bqjbiBUcuG7iyIsImVtYWlsIjoiYWRtaW5AbGlicmFyeS5sb2NhbCIsInJvbGUiOiJhZG1pbiIsImlzcyI6ImxpYnJhcnktcmVzdC1hcGkiLCJhdWQiOiJsaWJyYXJ5LXJlc3QtY2xpZW50IiwiZXhwIjoxODIzNzY2ODMwfQ.s72kV2SdCfTx4Q3JZK40IGgQRirRSHWFZanCb_AOx5w"
+    },
+    {
+      "key": "memberToken",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsInVzZXJfaWQiOjIsImZ1bGxfbmFtZSI6Ik5ndXnhu4VuIFbEg24gQW4iLCJlbWFpbCI6ImFuLm5ndXllbkBsaWJyYXJ5LmxvY2FsIiwicm9sZSI6Im1lbWJlciIsImlzcyI6ImxpYnJhcnktcmVzdC1hcGkiLCJhdWQiOiJsaWJyYXJ5LXJlc3QtY2xpZW50IiwiZXhwIjoxODIzNzY2ODMwfQ.-bM_hNjtKjDlpMRU_iJz6kK_pJArrnPyo9WEtzWGbXw"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Categories (DM01 - DM04)",
+      "item": [
+        {
+          "name": "DM01 - GET /categories (Public - 200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/categories"
+          }
+        },
+        {
+          "name": "B02 - POST /categories by Member (403 Forbidden)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{memberToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Danh mục thử quyền Member\"}"
+            },
+            "url": "{{baseUrl}}/categories"
+          }
+        },
+        {
+          "name": "B03 - POST /categories Duplicate Name (409 Conflict)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Công nghệ phần mềm\"}"
+            },
+            "url": "{{baseUrl}}/categories"
+          }
+        },
+        {
+          "name": "B04 - DELETE /categories/1 Has Books (409 Conflict)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/categories/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Books & Search (S01 - S07, TC01 - TC05)",
+      "item": [
+        {
+          "name": "B01 & B13 - GET /books Public Filter (q, category_id, available)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/books?q=Clean&category_id=1&available=true&sort=title&order=asc&page=1&limit=10"
+          }
+        },
+        {
+          "name": "B12 - GET /books/6 Inactive Book as Guest (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/books/6"
+          }
+        },
+        {
+          "name": "B12 - GET /books/6 Inactive Book as Admin (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/books/6"
+          }
+        },
+        {
+          "name": "B15 - GET /books Invalid Sort SQLi Attempt (422 Unprocessable Entity)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/books?sort=title;DROP%20TABLE%20books--"
+          }
+        },
+        {
+          "name": "B06 - POST /books Negative or Decimal Copies (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Sách thử lỗi\", \"author\": \"Tác giả\", \"category_id\": 999, \"total_copies\": 3.5}"
+            },
+            "url": "{{baseUrl}}/books"
+          }
+        },
+        {
+          "name": "B22 - POST /books Path Traversal in cover_path (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Sách Path Traversal\", \"author\": \"Tác giả\", \"category_id\": 1, \"total_copies\": 2, \"cover_path\": \"../../config/config.php\"}"
+            },
+            "url": "{{baseUrl}}/books"
+          }
+        },
+        {
+          "name": "B08 - PUT /books/4 Reduce Total Below Borrowed Copies (409 Conflict)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Design Patterns: Các mẫu thiết kế hướng đối tượng\", \"author\": \"Erich Gamma et al.\", \"category_id\": 1, \"publisher\": \"NXB Khoa học & Kỹ thuật\", \"publication_year\": 2018, \"description\": \"Đang có 2 bản được mượn\", \"cover_path\": \"assets/images/covers/clean-code.svg\", \"total_copies\": 1, \"is_active\": true}"
+            },
+            "url": "{{baseUrl}}/books/4"
+          }
+        },
+        {
+          "name": "B11 - DELETE /books/1 Has Loan History (409 Conflict)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/books/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Statistics (Mục E & Test B17)",
+      "item": [
+        {
+          "name": "B17 - GET /statistics as Admin (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/statistics"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,27 +1,58 @@
 <?php
+declare(strict_types=1);
 
-function readJsonBody()
+/**
+ * Helper đọc JSON request body, Authorization header và kiểm tra quyền tùy chọn (Người 1 + Người 2).
+ */
+function readJsonBody(): array
 {
-    $contentType = '';
-    if (isset($_SERVER['CONTENT_TYPE'])) {
-        $parts = explode(';', $_SERVER['CONTENT_TYPE']);
-        $contentType = strtolower(trim($parts[0]));
+    $raw = file_get_contents('php://input');
+    if ($raw === false || trim($raw) === '') {
+        return [];
     }
 
-    if ($contentType !== 'application/json') {
-        sendError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Yêu cầu phải gửi dữ liệu JSON.');
+    $data = json_decode($raw, true);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+        sendError(400, 'INVALID_JSON', 'Dữ liệu gửi lên không phải JSON hợp lệ.');
     }
 
-    $rawBody = file_get_contents('php://input');
-    $data = json_decode($rawBody);
+    return $data;
+}
 
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        sendError(400, 'INVALID_JSON', 'Dữ liệu JSON không đúng định dạng.');
+function getJsonBody(): array
+{
+    return readJsonBody();
+}
+
+function authorizationHeader(): string
+{
+    if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+        return trim((string) $_SERVER['HTTP_AUTHORIZATION']);
     }
-
-    if (!is_object($data)) {
-        sendError(422, 'INVALID_BODY', 'Dữ liệu gửi lên phải là một đối tượng JSON.');
+    if (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        return trim((string) $_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
     }
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        foreach ($headers as $k => $v) {
+            if (strtolower((string) $k) === 'authorization') {
+                return trim((string) $v);
+            }
+        }
+    }
+    return '';
+}
 
-    return (array) $data;
+/**
+ * Trả về thông tin user nếu request có kèm Bearer token hợp lệ,
+ * hoặc trả về null nếu khách vãng lai không gửi Authorization header.
+ */
+function getOptionalAuthUser(): ?array
+{
+    $header = authorizationHeader();
+    if ($header === '') {
+        return null;
+    }
+    $_SERVER['HTTP_AUTHORIZATION'] = $header;
+    return requireAuth();
 }

@@ -1,189 +1,256 @@
--- DU LIEU MAU VA SUA DU LIEU MAU CU - library_rest
--- Nhap schema.sql truoc. Dung web server PHP truoc khi nhap file nay.
--- Nen xuat ban sao luu CSDL hien tai trong phpMyAdmin truoc khi nhap.
--- CSDL rong: tao 6 tai khoan, 4 danh muc, 9 dau sach, 4 phieu muon.
--- CSDL da co du lieu: KHONG them tai khoan/sach/phieu muon mau.
--- Chi sua hash mau sai da biet va tinh lai so ban con theo phieu borrowed.
--- Khong xoa lich su, khong doi tong so ban, vai tro hay trang thai tai khoan.
--- Admin: admin@example.com / Admin12345
--- Member: an@example.com, chau.le@example.com, anh.hoang@example.com,
---         khoi.vo@example.com / ThuVien123
--- bao.pham@example.com co mat khau ThuVien123 nhung dang bi khoa.
+-- =============================================================================
+-- DỮ LIỆU MẪU HỢP NHẤT (SEED DATA) — HỆ THỐNG QUẢN LÝ THƯ VIỆN MƯỢN - TRẢ SÁCH
+-- Tương thích 100% cả Người 1 (Duy An) và Người 2 (Danh mục, Sách, Tra cứu, Thống kê)
+-- =============================================================================
+-- Tài khoản mẫu:
+--   + Admin  : admin@example.com    | Mật khẩu: Admin12345
+--   + Member : an@example.com       | Mật khẩu: ThuVien123
+--   + Member : chau.le@example.com  | Mật khẩu: ThuVien123
+--   + Member : bao.pham@example.com | Mật khẩu: ThuVien123 (Tài khoản bị khóa is_active = 0)
+--   + Member : anh.hoang@example.com| Mật khẩu: ThuVien123
+--   + Member : khoi.vo@example.com  | Mật khẩu: ThuVien123 (Độc giả mới chưa có phiếu mượn)
+-- =============================================================================
 
 USE library_rest;
 SET NAMES utf8mb4;
 SET time_zone = '+07:00';
-START TRANSACTION;
 
--- Chi tao du lieu minh hoa khi CA BON bang deu rong.
-SET @seed_new = (
-    (SELECT COUNT(*) FROM users) = 0
-    AND (SELECT COUNT(*) FROM categories) = 0
-    AND (SELECT COUNT(*) FROM books) = 0
-    AND (SELECT COUNT(*) FROM loans) = 0
-);
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE loans;
+TRUNCATE TABLE books;
+TRUNCATE TABLE categories;
+TRUNCATE TABLE users;
+SET FOREIGN_KEY_CHECKS = 1;
 
--- 1. Tao tai khoan mau, de CSDL tu cap ID.
+-- -----------------------------------------------------------------------------
+-- 1. BẢNG USERS (1 Admin + 5 Member)
+-- -----------------------------------------------------------------------------
+INSERT INTO users (id, full_name, email, password_hash, role, is_active, created_at) VALUES
+(1, 'Quản trị Thư viện', 'admin@example.com',    '$2y$10$7CCwARfXIoietbE1ivGFUuUPbvRi6dkHGUKqzSLdAmHjh.7PruzbO', 'admin',  1, '2026-01-05 08:00:00'),
+(2, 'Nguyễn Văn An',     'an@example.com',       '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 1, '2026-01-10 09:15:00'),
+(3, 'Lê Minh Châu',      'chau.le@example.com',  '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 1, '2026-01-12 10:30:00'),
+(4, 'Phạm Quốc Bảo',     'bao.pham@example.com', '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 0, '2026-01-15 14:20:00'),
+(5, 'Hoàng Mai Anh',     'anh.hoang@example.com','$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 1, '2026-01-18 16:00:00'),
+(6, 'Võ Đăng Khôi',      'khoi.vo@example.com',  '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 1, '2026-01-20 11:10:00');
 
-INSERT INTO users (full_name, email, password_hash, role, is_active)
-SELECT 'Quản Trị Viên Thư Viện', 'admin@example.com', '$2y$10$7CCwARfXIoietbE1ivGFUuUPbvRi6dkHGUKqzSLdAmHjh.7PruzbO', 'admin', 1
-WHERE @seed_new = 1;
+-- -----------------------------------------------------------------------------
+-- 2. BẢNG CATEGORIES (6 danh mục: 5 danh mục có sách + 1 danh mục trống để test xóa)
+-- -----------------------------------------------------------------------------
+INSERT INTO categories (id, name, description, created_at) VALUES
+(1, 'Công nghệ & Lập trình',        'Sách về kỹ thuật phần mềm, kiến trúc hệ thống, cơ sở dữ liệu và phát triển ứng dụng web.', '2026-01-05 08:10:00'),
+(2, 'Khoa học & Tư duy',            'Sách khám phá khoa học tự nhiên, vũ trụ, tâm lý học nhận thức và tư duy phản biện.',       '2026-01-05 08:11:00'),
+(3, 'Văn học & Tiểu thuyết',        'Tác phẩm văn học kinh điển và tiểu thuyết hiện đại trong nước và quốc tế.',                '2026-01-05 08:12:00'),
+(4, 'Kinh tế & Quản trị',           'Sách về quản trị doanh nghiệp, tài chính cá nhân, khởi nghiệp và chiến lược kinh doanh.',  '2026-01-05 08:13:00'),
+(5, 'Kỹ năng & Phát triển bản thân','Sách rèn luyện thói quen, phương pháp học tập, giao tiếp và quản lý thời gian hiệu quả.',  '2026-01-05 08:14:00'),
+(6, 'Lịch sử & Triết học',          'Danh mục chuyên khảo lịch sử và triết học (chưa có đầu sách — dùng để kiểm thử xóa danh mục rỗng).', '2026-01-05 08:15:00');
 
-INSERT INTO users (full_name, email, password_hash, role, is_active)
-SELECT 'Trần Hồ Duy An', 'an@example.com', '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 1
-WHERE @seed_new = 1;
+-- -----------------------------------------------------------------------------
+-- 3. BẢNG BOOKS (20 đầu sách: 19 đầu sách active + 1 đầu sách ngừng hoạt động is_active=0)
+-- -----------------------------------------------------------------------------
+INSERT INTO books (
+    id, category_id, isbn, title, author, publisher, publish_year,
+    description, cover_path, total_copies, available_copies, is_active, created_at
+) VALUES
+(1,  1, '978-604-001-001', 'Clean Code — Mã Nguồn Sạch',
+    'Robert C. Martin', 'NXB Bách Khoa', 2022,
+    'Nguyên tắc viết mã rõ ràng, dễ bảo trì, đặt tên có ý nghĩa và tái cấu trúc hệ thống phần mềm chuyên nghiệp.',
+    'assets/images/covers/clean-code.svg', 5, 4, 1, '2026-01-06 08:00:00'),
 
-INSERT INTO users (full_name, email, password_hash, role, is_active)
-SELECT 'Lê Thị Minh Châu', 'chau.le@example.com', '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 1
-WHERE @seed_new = 1;
+(2,  1, '978-604-001-002', 'Thiết Kế Hệ Thống RESTful Web APIs',
+    'Leonard Richardson', 'NXB Khoa Học & Kỹ Thuật', 2023,
+    'Hướng dẫn thiết kế kiến trúc REST chuẩn mực, định danh tài nguyên bằng URI, HTTP status code và bảo mật bằng JWT.',
+    'assets/images/covers/web-php-mysql.svg', 4, 3, 1, '2026-01-06 08:05:00'),
 
-INSERT INTO users (full_name, email, password_hash, role, is_active)
-SELECT 'Phạm Quốc Bảo', 'bao.pham@example.com', '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 0
-WHERE @seed_new = 1;
+(3,  1, '978-604-001-003', 'Lập Trình PHP & MySQL Thực Chiến',
+    'Nguyễn Minh Đức', 'NXB Thông Tin & Truyền Thông', 2024,
+    'Xây dựng ứng dụng web hiện đại với PHP 8.2, PDO Prepared Statements, quản lý giao dịch InnoDB và kiến trúc MVC/API.',
+    'assets/images/covers/web-php-mysql.svg', 6, 6, 1, '2026-01-06 08:10:00'),
 
-INSERT INTO users (full_name, email, password_hash, role, is_active)
-SELECT 'Hoàng Ngọc Ánh', 'anh.hoang@example.com', '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 1
-WHERE @seed_new = 1;
+(4,  1, '978-604-001-004', 'Cấu Trúc Dữ Liệu và Giải Thuật Hiện Đại',
+    'Lê Hoàng Vũ', 'NXB Đại Học Quốc Gia', 2021,
+    'Trình bày trực quan về danh sách liên kết, cây tìm kiếm, bảng băm, đồ thị và phân tích độ phức tạp thuật toán.',
+    'assets/images/covers/algorithms.svg', 5, 4, 1, '2026-01-06 08:15:00'),
 
-INSERT INTO users (full_name, email, password_hash, role, is_active)
-SELECT 'Võ Minh Khôi', 'khoi.vo@example.com', '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..', 'member', 1
-WHERE @seed_new = 1;
+(5,  2, '978-604-002-001', 'Tư Duy Nhanh và Chậm',
+    'Daniel Kahneman', 'NXB Thế Giới', 2022,
+    'Khám phá hai hệ thống tư duy chi phối cách con người đưa ra phán đoán, quyết định và những thiên kiến nhận thức thường gặp.',
+    'assets/images/covers/thinking-fast-slow.svg', 4, 3, 1, '2026-01-06 08:20:00'),
 
--- 2. Tao danh muc mau.
+(6,  2, '978-604-002-002', 'Lược Sử Thời Gian',
+    'Stephen Hawking', 'NXB Trẻ', 2021,
+    'Hành trình khám phá nguồn gốc vũ trụ, lỗ đen, bức xạ Hawking và các định luật vật lý nền tảng của không-thời gian.',
+    'assets/images/covers/default-book.svg', 4, 4, 1, '2026-01-06 08:25:00'),
 
-INSERT INTO categories (name, description)
-SELECT 'Công nghệ & Lập trình', 'Sách kỹ thuật phần mềm, web, trí tuệ nhân tạo và kiến trúc hệ thống.'
-WHERE @seed_new = 1;
+(7,  2, '978-604-002-003', 'Sapiens — Lược Sử Loài Người',
+    'Yuval Noah Harari', 'NXB Tri Thức', 2023,
+    'Bức tranh toàn cảnh về sự tiến hóa của loài người qua cách mạng nhận thức, cách mạng nông nghiệp và cách mạng khoa học.',
+    'assets/images/covers/sapiens.svg', 5, 4, 1, '2026-01-06 08:30:00'),
 
-INSERT INTO categories (name, description)
-SELECT 'Thiết kế & UX/UI', 'Tư duy thiết kế sản phẩm, trải nghiệm người dùng và đồ họa ứng dụng.'
-WHERE @seed_new = 1;
+(8,  3, '978-604-003-001', 'Dế Mèn Phiêu Lưu Ký',
+    'Tô Hoài', 'NXB Kim Đồng', 2020,
+    'Tác phẩm văn học thiếu nhi kinh điển Việt Nam về hành trình trưởng thành, tình bạn và khát vọng hòa bình của Dế Mèn.',
+    'assets/images/covers/de-men.svg', 6, 6, 1, '2026-01-06 08:35:00'),
 
-INSERT INTO categories (name, description)
-SELECT 'Văn học & Tiểu thuyết', 'Tác phẩm văn học kinh điển và tiểu thuyết hiện đại.'
-WHERE @seed_new = 1;
+(9,  3, '978-604-003-002', 'Nhà Giả Kim',
+    'Paulo Coelho', 'NXB Hội Nhà Văn', 2021,
+    'Câu chuyện giàu chất thơ về chàng chăn cừu Santiago trên hành trình theo đuổi giấc mơ và lắng nghe tiếng nói trái tim.',
+    'assets/images/covers/nha-gia-kim.svg', 5, 5, 1, '2026-01-06 08:40:00'),
 
-INSERT INTO categories (name, description)
-SELECT 'Kỹ năng & Kinh doanh', 'Phát triển bản thân, quản trị dự án và khởi nghiệp.'
-WHERE @seed_new = 1;
+(10, 3, '978-604-003-003', 'Mắt Biếc',
+    'Nguyễn Nhật Ánh', 'NXB Trẻ', 2022,
+    'Tiểu thuyết giàu cảm xúc về tuổi học trò, làng Đo Đo và mối tình đơn phương trong trẻo qua năm tháng.',
+    'assets/images/covers/mat-biec.svg', 4, 4, 1, '2026-01-06 08:45:00'),
 
-SET @cat_1 = (SELECT id FROM categories WHERE name = 'Công nghệ & Lập trình' LIMIT 1);
-SET @cat_2 = (SELECT id FROM categories WHERE name = 'Thiết kế & UX/UI' LIMIT 1);
-SET @cat_3 = (SELECT id FROM categories WHERE name = 'Văn học & Tiểu thuyết' LIMIT 1);
-SET @cat_4 = (SELECT id FROM categories WHERE name = 'Kỹ năng & Kinh doanh' LIMIT 1);
+(11, 4, '978-604-004-001', 'Khởi Nghiệp Tinh Gọn — The Lean Startup',
+    'Eric Ries', 'NXB Lao Động', 2022,
+    'Phương pháp xây dựng sản phẩm thử nghiệm tối thiểu (MVP), đo lường phản hồi khách hàng và đổi mới liên tục.',
+    'assets/images/covers/default-book.svg', 4, 4, 1, '2026-01-06 08:50:00'),
 
--- 3. Tao sach voi so ban con bang tong. Muc 6 se tru dung so phieu borrowed.
+(12, 4, '978-604-004-002', 'Tâm Lý Học Về Tiền',
+    'Morgan Housel', 'NXB Dân Trí', 2023,
+    'Những bài học sâu sắc về hành vi tài chính, sự kiên nhẫn, lãi kép và cách xây dựng sự tự do bền vững.',
+    'assets/images/covers/default-book.svg', 5, 5, 1, '2026-01-06 08:55:00'),
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_1, 'RESTful Web APIs: Services for a Changing World', 'Leonard Richardson & Mike Amundsen', 'O''Reilly Media', 2013, 'Hướng dẫn thiết kế kiến trúc REST API chuẩn mực, hypermedia và HTTP.', 'linear-gradient(135deg, #0ea5e9 0%, #1e3a8a 100%)', 5, 5, 1
-WHERE @seed_new = 1;
+(13, 5, '978-604-005-001', 'Atomic Habits — Thay Đổi Tí Hon, Hiệu Quả Bất Ngờ',
+    'James Clear', 'NXB Phương Đông', 2023,
+    'Hệ thống 4 quy luật thiết lập thói quen tốt và loại bỏ thói quen xấu thông qua những cải tiến 1% mỗi ngày.',
+    'assets/images/covers/default-book.svg', 6, 5, 1, '2026-01-06 09:00:00'),
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_2, 'The Design of Everyday Things', 'Don Norman', 'Basic Books', 2013, 'Cuốn sách gối đầu giường về tư duy thiết kế lấy người dùng làm trung tâm.', 'linear-gradient(135deg, #facc15 0%, #ca8a04 100%)', 4, 4, 1
-WHERE @seed_new = 1;
+(14, 5, '978-604-005-002', 'Deep Work — Làm Ra Làm, Chơi Ra Chơi',
+    'Cal Newport', 'NXB Thế Giới', 2022,
+    'Chiến lược rèn luyện khả năng tập trung sâu trong kỷ nguyên số đầy xao nhãng để tạo ra giá trị vượt trội.',
+    'assets/images/covers/default-book.svg', 4, 4, 1, '2026-01-06 09:05:00'),
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_2, 'Strategic Writing for UX', 'Torrey Podmajersky', 'O''Reilly Media', 2019, 'Nghệ thuật viết nội dung giao diện giúp tăng tương tác và độ rõ ràng.', 'linear-gradient(135deg, #475569 0%, #0f172a 100%)', 3, 3, 1
-WHERE @seed_new = 1;
+(15, 1, '978-604-001-005', 'Bảo Mật Ứng Dụng Web & Cơ Sở Dữ Liệu',
+    'Trần Quốc Tuấn', 'NXB Bách Khoa', 2024,
+    'Phân tích các lỗ hổng phổ biến (SQL Injection, XSS, CSRF, Broken Access Control) và giải pháp phòng vệ thực tế.',
+    'assets/images/covers/web-php-mysql.svg', 3, 3, 1, '2026-01-06 09:10:00'),
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_1, 'Clean Code: A Handbook of Agile Software Craftsmanship', 'Robert C. Martin', 'Prentice Hall', 2008, 'Nguyên tắc viết mã sạch, dễ bảo trì và mở rộng trong phát triển phần mềm.', 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 6, 6, 1
-WHERE @seed_new = 1;
+(16, 1, '978-604-001-006', 'Designing Data-Intensive Applications',
+    'Martin Kleppmann', 'NXB Khoa Học & Kỹ Thuật', 2021,
+    'Kiến trúc hệ thống phân tán, cơ sở dữ liệu quan hệ & NoSQL, xử lý đồng thời (Concurrency) và đảm bảo toàn vẹn dữ liệu.',
+    'assets/images/covers/algorithms.svg', 3, 3, 1, '2026-01-06 09:15:00'),
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_1, 'Designing Data-Intensive Applications', 'Martin Kleppmann', 'O''Reilly Media', 2017, 'Kiến trúc hệ thống dữ liệu lớn, xử lý đồng thời, transaction và độ tin cậy.', 'linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%)', 4, 4, 1
-WHERE @seed_new = 1;
+(17, 4, '978-604-004-003', 'Quản Trị Học Hiện Đại',
+    'Stephen P. Robbins', 'NXB Kinh Tế TP.HCM', 2020,
+    'Giáo trình nền tảng về hoạch định, tổ chức, lãnh đạo và kiểm soát trong các tổ chức doanh nghiệp hiện đại.',
+    'assets/images/covers/default-book.svg', 4, 4, 1, '2026-01-06 09:20:00'),
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_3, 'The Lord of the Rings', 'J.R.R. Tolkien', 'Allen & Unwin', 1954, 'Bộ sử thi kỳ ảo kinh điển của nền văn học thế giới.', 'linear-gradient(135deg, #1e293b 0%, #090d16 100%)', 3, 3, 1
-WHERE @seed_new = 1;
+(18, 5, '978-604-005-003', 'Đắc Nhân Tâm',
+    'Dale Carnegie', 'NXB Tổng Hợp TP.HCM', 2019,
+    'Nghệ thuật ứng xử, lắng nghe và thuyết phục con người trong công việc cũng như cuộc sống hằng ngày.',
+    'assets/images/covers/default-book.svg', 5, 5, 1, '2026-01-06 09:25:00'),
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_3, '1984 — Nineteen Eighty-Four', 'George Orwell', 'Secker & Warburg', 1949, 'Tiểu thuyết kinh điển đầy suy ngẫm về xã hội và con người.', 'linear-gradient(135deg, #64748b 0%, #334155 100%)', 5, 5, 1
-WHERE @seed_new = 1;
+(19, 1, '978-604-001-007', 'Thực Hành Docker & Kubernetes Căn Bản',
+    'Phạm Minh Hoàng', 'NXB Thông Tin & Truyền Thông', 2023,
+    'Hướng dẫn đóng gói ứng dụng với Docker Container (Đầu sách đang hết bản khả dụng available_copies = 0 để kiểm thử).',
+    'assets/images/covers/web-php-mysql.svg', 1, 0, 1, '2026-01-06 09:30:00'),
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_4, 'Steve Jobs: The Exclusive Biography', 'Walter Isaacson', 'Simon & Schuster', 2011, 'Tiểu sử cuộc đời và triết lý sáng tạo sản phẩm của Steve Jobs.', 'linear-gradient(135deg, #059669 0%, #064e3b 100%)', 4, 4, 1
-WHERE @seed_new = 1;
+(20, 1, '978-604-001-008', 'Giáo Trình Pascal & FoxPro Cổ Điển (Ngừng lưu hành)',
+    'Nhiều Tác Giả', 'NXB Giáo Dục', 2002,
+    'Tài liệu lưu trữ nội bộ đã ngừng cho mượn mới (is_active = 0) để kiểm thử phân quyền tra cứu và chi tiết sách.',
+    'assets/images/covers/default-book.svg', 2, 2, 0, '2026-01-06 09:35:00');
 
-INSERT INTO books (category_id, title, author, publisher, publication_year, description, cover_path, total_copies, available_copies, is_active)
-SELECT @cat_2, 'Logo Design Love: A Guide to Creating Iconic Brand Identities', 'David Airey', 'New Riders', 2014, 'Cẩm nang thiết kế nhận diện thương hiệu và biểu trưng chuyên nghiệp.', 'linear-gradient(135deg, #ea580c 0%, #9a3412 100%)', 3, 3, 1
-WHERE @seed_new = 1;
+-- -----------------------------------------------------------------------------
+-- 4. BẢNG LOANS (Đủ các trạng thái: pending, borrowed, overdue, returned, rejected, cancelled)
+-- -----------------------------------------------------------------------------
+INSERT INTO loans (
+    id, user_id, book_id, status,
+    requested_at, borrowed_at, due_date, returned_at,
+    approved_by, returned_by, rejection_reason
+) VALUES
+-- Độc giả Nguyễn Văn An (user_id = 2)
+(1, 2, 1, 'borrowed',
+    DATE_SUB(NOW(), INTERVAL 6 DAY),
+    DATE_SUB(NOW(), INTERVAL 5 DAY),
+    DATE_ADD(CURDATE(), INTERVAL 9 DAY),
+    NULL, 1, NULL, NULL),
 
--- Lay ID theo du lieu, khong gia dinh ID luon la 1, 2, 3...
+(2, 2, 5, 'borrowed',
+    DATE_SUB(NOW(), INTERVAL 18 DAY),
+    DATE_SUB(NOW(), INTERVAL 17 DAY),
+    DATE_SUB(CURDATE(), INTERVAL 3 DAY),
+    NULL, 1, NULL, NULL),
 
-SET @admin_id = (SELECT id FROM users WHERE email = 'admin@example.com' LIMIT 1);
-SET @an_id = (SELECT id FROM users WHERE email = 'an@example.com' LIMIT 1);
-SET @chau_id = (SELECT id FROM users WHERE email = 'chau.le@example.com' LIMIT 1);
-SET @anh_id = (SELECT id FROM users WHERE email = 'anh.hoang@example.com' LIMIT 1);
-SET @book_1 = (SELECT id FROM books WHERE title = 'RESTful Web APIs: Services for a Changing World' AND author = 'Leonard Richardson & Mike Amundsen' ORDER BY id LIMIT 1);
-SET @book_2 = (SELECT id FROM books WHERE title = 'The Design of Everyday Things' AND author = 'Don Norman' ORDER BY id LIMIT 1);
-SET @book_3 = (SELECT id FROM books WHERE title = 'Strategic Writing for UX' AND author = 'Torrey Podmajersky' ORDER BY id LIMIT 1);
-SET @book_4 = (SELECT id FROM books WHERE title = 'Clean Code: A Handbook of Agile Software Craftsmanship' AND author = 'Robert C. Martin' ORDER BY id LIMIT 1);
+(3, 2, 3, 'pending',
+    DATE_SUB(NOW(), INTERVAL 1 DAY),
+    NULL, NULL, NULL, NULL, NULL, NULL),
 
--- 4. Phieu muon minh hoa chi tao tren CSDL rong, khong gan phieu gia cho doc gia cu.
-INSERT INTO loans (user_id, book_id, status, requested_at, borrowed_at, due_date, approved_by)
-SELECT @an_id, @book_1, 'borrowed', DATE_SUB(NOW(), INTERVAL 4 DAY),
-       DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_ADD(CURDATE(), INTERVAL 11 DAY), @admin_id
-WHERE @seed_new = 1;
+(4, 2, 8, 'returned',
+    DATE_SUB(NOW(), INTERVAL 25 DAY),
+    DATE_SUB(NOW(), INTERVAL 24 DAY),
+    DATE_SUB(CURDATE(), INTERVAL 10 DAY),
+    DATE_SUB(NOW(), INTERVAL 12 DAY),
+    1, 1, NULL),
 
-INSERT INTO loans (user_id, book_id, status, requested_at)
-SELECT @an_id, @book_2, 'pending', DATE_SUB(NOW(), INTERVAL 1 DAY)
-WHERE @seed_new = 1;
+(5, 2, 9, 'returned',
+    DATE_SUB(NOW(), INTERVAL 35 DAY),
+    DATE_SUB(NOW(), INTERVAL 34 DAY),
+    DATE_SUB(CURDATE(), INTERVAL 20 DAY),
+    DATE_SUB(NOW(), INTERVAL 21 DAY),
+    1, 1, NULL),
 
-INSERT INTO loans (user_id, book_id, status, requested_at, borrowed_at, due_date, approved_by)
-SELECT @chau_id, @book_3, 'borrowed', DATE_SUB(NOW(), INTERVAL 18 DAY),
-       DATE_SUB(NOW(), INTERVAL 17 DAY), DATE_SUB(CURDATE(), INTERVAL 3 DAY), @admin_id
-WHERE @seed_new = 1;
+-- Độc giả Lê Minh Châu (user_id = 3)
+(6, 3, 2, 'borrowed',
+    DATE_SUB(NOW(), INTERVAL 4 DAY),
+    DATE_SUB(NOW(), INTERVAL 3 DAY),
+    DATE_ADD(CURDATE(), INTERVAL 11 DAY),
+    NULL, 1, NULL, NULL),
 
-INSERT INTO loans (user_id, book_id, status, requested_at, borrowed_at, due_date, returned_at, approved_by, returned_by)
-SELECT @anh_id, @book_4, 'returned', DATE_SUB(NOW(), INTERVAL 20 DAY),
-       DATE_SUB(NOW(), INTERVAL 19 DAY), DATE_SUB(CURDATE(), INTERVAL 5 DAY),
-       DATE_SUB(NOW(), INTERVAL 7 DAY), @admin_id, @admin_id
-WHERE @seed_new = 1;
+(7, 3, 7, 'borrowed',
+    DATE_SUB(NOW(), INTERVAL 20 DAY),
+    DATE_SUB(NOW(), INTERVAL 19 DAY),
+    DATE_SUB(CURDATE(), INTERVAL 5 DAY),
+    NULL, 1, NULL, NULL),
 
--- 5. Sua dung hash mau cu bi sai (hash cua "password").
--- Tai khoan da doi mat khau, khac email/role mau se duoc giu nguyen.
-SET @old_sample_hash = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+(8, 3, 10, 'pending',
+    DATE_SUB(NOW(), INTERVAL 2 HOUR),
+    NULL, NULL, NULL, NULL, NULL, NULL),
 
-UPDATE users
-SET password_hash = '$2y$10$7CCwARfXIoietbE1ivGFUuUPbvRi6dkHGUKqzSLdAmHjh.7PruzbO'
-WHERE email = 'admin@example.com' AND role = 'admin'
-  AND BINARY password_hash = BINARY @old_sample_hash;
+(9, 3, 6, 'rejected',
+    DATE_SUB(NOW(), INTERVAL 8 DAY),
+    NULL, NULL, NULL, 1, NULL,
+    'Bản sách yêu cầu đang được kiểm kê định kỳ tại quầy thủ thư.'),
 
-UPDATE users
-SET password_hash = '$2y$10$jcPls5eHDQ7iEHai1pAp4Oj1v0ZmoJG6TagUgqw/BdIaW5WTlWn..'
-WHERE role = 'member'
-  AND email IN ('an@example.com', 'chau.le@example.com', 'bao.pham@example.com',
-                'anh.hoang@example.com', 'khoi.vo@example.com')
-  AND BINARY password_hash = BINARY @old_sample_hash;
+(10, 3, 12, 'cancelled',
+    DATE_SUB(NOW(), INTERVAL 10 DAY),
+    NULL, NULL, NULL, NULL, NULL, NULL),
 
--- 6. Doi chieu ton kho theo quy tac cua du an:
--- So ban con = tong so ban - so phieu DANG MUON; pending khong giu cho.
--- Khong tu tang tong so ban neu so dang muon da vuot tong; bao o muc 7.
+-- Độc giả Hoàng Mai Anh (user_id = 5)
+(11, 5, 4, 'borrowed',
+    DATE_SUB(NOW(), INTERVAL 3 DAY),
+    DATE_SUB(NOW(), INTERVAL 2 DAY),
+    DATE_ADD(CURDATE(), INTERVAL 12 DAY),
+    NULL, 1, NULL, NULL),
+
+(12, 5, 13, 'borrowed',
+    DATE_SUB(NOW(), INTERVAL 2 DAY),
+    DATE_SUB(NOW(), INTERVAL 1 DAY),
+    DATE_ADD(CURDATE(), INTERVAL 13 DAY),
+    NULL, 1, NULL, NULL),
+
+(13, 5, 19, 'borrowed',
+    DATE_SUB(NOW(), INTERVAL 5 DAY),
+    DATE_SUB(NOW(), INTERVAL 4 DAY),
+    DATE_ADD(CURDATE(), INTERVAL 10 DAY),
+    NULL, 1, NULL, NULL),
+
+(14, 5, 11, 'pending',
+    DATE_SUB(NOW(), INTERVAL 5 HOUR),
+    NULL, NULL, NULL, NULL, NULL, NULL),
+
+(15, 5, 1, 'returned',
+    DATE_SUB(NOW(), INTERVAL 28 DAY),
+    DATE_SUB(NOW(), INTERVAL 27 DAY),
+    DATE_SUB(CURDATE(), INTERVAL 13 DAY),
+    DATE_SUB(NOW(), INTERVAL 15 DAY),
+    1, 1, NULL);
+
+-- -----------------------------------------------------------------------------
+-- 5. ĐỐI CHIẾU TỒN KHO: available_copies = total_copies - số phiếu đang borrowed
+-- -----------------------------------------------------------------------------
 UPDATE books
 SET available_copies = CAST(total_copies AS SIGNED) - (
     SELECT COUNT(*) FROM loans
     WHERE loans.book_id = books.id AND loans.status = 'borrowed'
-)
-WHERE total_copies >= (
-    SELECT COUNT(*) FROM loans
-    WHERE loans.book_id = books.id AND loans.status = 'borrowed'
-)
-AND available_copies <> CAST(total_copies AS SIGNED) - (
-    SELECT COUNT(*) FROM loans
-    WHERE loans.book_id = books.id AND loans.status = 'borrowed'
-);
-
-COMMIT;
-
--- 7. Kiem tra: ket qua rong nghia la ton kho da khop.
--- Neu con dong du lieu, can xem lai tong so ban va phieu muon cua sach do.
-SELECT b.id, b.title, b.total_copies, b.available_copies,
-       (SELECT COUNT(*) FROM loans l
-        WHERE l.book_id = b.id AND l.status = 'borrowed') AS borrowed_count
-FROM books b
-WHERE b.total_copies - b.available_copies <> (
-    SELECT COUNT(*) FROM loans l
-    WHERE l.book_id = b.id AND l.status = 'borrowed'
 );

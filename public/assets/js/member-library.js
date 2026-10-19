@@ -370,7 +370,7 @@ function renderLoansTable(loans) {
         if (loan.status === 'pending') {
             const btnCancel = document.createElement('button');
             btnCancel.type = 'button';
-            btnCancel.className = 'btn btn-sm btn-outline-danger';
+            btnCancel.className = 'btn btn-sm btn-danger text-white';
             btnCancel.textContent = 'Hủy yêu cầu';
             btnCancel.addEventListener('click', function () {
                 cancelPendingLoan(loan.id);
@@ -520,6 +520,7 @@ async function loadAllMemberLoans(loadVersion) {
 async function loadBooksAndLoans() {
     const loadVersion = ++libraryLoadVersion;
     const params = new URLSearchParams();
+    params.set('limit', '50');
     if (libraryState.q !== '') {
         params.set('q', libraryState.q);
     }
@@ -538,8 +539,10 @@ async function loadBooksAndLoans() {
         }
 
         // Chi ap dung ket qua khi ca sach va phieu muon cua lan tai moi nhat da xong.
-        libraryState.categories = booksRes.data.categories || [];
-        libraryState.books = booksRes.data.books || [];
+        libraryState.categories = (booksRes.data && booksRes.data.categories) || [];
+        libraryState.books = Array.isArray(booksRes.data)
+            ? booksRes.data
+            : ((booksRes.data && booksRes.data.books) || []);
         libraryState.loans = loans;
 
         const catSelect = document.getElementById('category-filter');

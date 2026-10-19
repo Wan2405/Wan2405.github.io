@@ -125,7 +125,7 @@ function hideBanner() {
 
 async function verifyAdminSession() {
     if (!sessionStorage.getItem('token')) {
-        window.location.replace('/login.html');
+        window.location.replace('../login.html');
         return false;
     }
 
@@ -134,7 +134,7 @@ async function verifyAdminSession() {
         const user = result.data;
 
         if (user.role !== 'admin') {
-            window.location.replace('/my-loans.html');
+            window.location.replace('../my-loans.html');
             return false;
         }
 
@@ -148,7 +148,7 @@ async function verifyAdminSession() {
         return true;
     } catch (error) {
         if (error.status === 401) {
-            window.location.replace('/login.html');
+            window.location.replace('../login.html');
             return false;
         }
         showBanner('error', error.message || 'Không kiểm tra được phiên đăng nhập.');
@@ -187,7 +187,7 @@ async function loadLoans() {
         renderPagination(meta);
     } catch (error) {
         if (error.status === 401) {
-            window.location.replace('/login.html');
+            window.location.replace('../login.html');
             return;
         }
         showBanner('error', error.message || 'Không tải được danh sách phiếu mượn.');
@@ -301,7 +301,7 @@ function renderLoansTable(loans) {
 
         const btnDetail = document.createElement('button');
         btnDetail.type = 'button';
-        btnDetail.className = 'btn btn-sm btn-outline-secondary';
+        btnDetail.className = 'btn btn-sm btn-primary text-white';
         btnDetail.textContent = 'Chi tiết';
         btnDetail.addEventListener('click', function () {
             openLoanDetailModal(loan.id);
@@ -313,7 +313,7 @@ function renderLoansTable(loans) {
         if (links.approve || loan.status === 'pending') {
             const btnApprove = document.createElement('button');
             btnApprove.type = 'button';
-            btnApprove.className = 'btn btn-sm btn-success';
+            btnApprove.className = 'btn btn-sm btn-success text-white';
             btnApprove.textContent = 'Giao sách';
             btnApprove.addEventListener('click', function () {
                 openConfirmLoanAction('borrowed', loan);
@@ -324,7 +324,7 @@ function renderLoansTable(loans) {
         if (links.reject || loan.status === 'pending') {
             const btnReject = document.createElement('button');
             btnReject.type = 'button';
-            btnReject.className = 'btn btn-sm btn-outline-danger';
+            btnReject.className = 'btn btn-sm btn-danger text-white';
             btnReject.textContent = 'Từ chối';
             btnReject.addEventListener('click', function () {
                 openRejectLoanModal(loan);
@@ -335,7 +335,7 @@ function renderLoansTable(loans) {
         if (links.return || loan.status === 'borrowed') {
             const btnReturn = document.createElement('button');
             btnReturn.type = 'button';
-            btnReturn.className = 'btn btn-sm btn-primary';
+            btnReturn.className = 'btn btn-sm btn-primary text-white';
             btnReturn.textContent = 'Nhận trả';
             btnReturn.addEventListener('click', function () {
                 openConfirmLoanAction('returned', loan);
@@ -613,7 +613,7 @@ btnNextPage.addEventListener('click', function () {
 
 function handleLogout() {
     sessionStorage.removeItem('token');
-    window.location.replace('/login.html');
+    window.location.replace('../login.html');
 }
 
 document.getElementById('btn-sidebar-logout').addEventListener('click', handleLogout);
