@@ -36,8 +36,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{memberToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{memberToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -51,8 +57,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -66,7 +78,10 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
             ],
             "url": "{{baseUrl}}/categories/1"
           }
@@ -85,21 +100,24 @@
           }
         },
         {
-          "name": "B12 - GET /books/6 Inactive Book as Guest (404 Not Found)",
+          "name": "B12 - GET /books/20 Inactive Book as Guest (404 Not Found)",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/books/6"
+            "url": "{{baseUrl}}/books/20"
           }
         },
         {
-          "name": "B12 - GET /books/6 Inactive Book as Admin (200 OK)",
+          "name": "B12 - GET /books/20 Inactive Book as Admin (200 OK)",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
             ],
-            "url": "{{baseUrl}}/books/6"
+            "url": "{{baseUrl}}/books/20"
           }
         },
         {
@@ -115,8 +133,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -130,8 +154,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -145,12 +175,18 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"title\": \"Design Patterns: Các mẫu thiết kế hướng đối tượng\", \"author\": \"Erich Gamma et al.\", \"category_id\": 1, \"publisher\": \"NXB Khoa học & Kỹ thuật\", \"publication_year\": 2018, \"description\": \"Đang có 2 bản được mượn\", \"cover_path\": \"assets/images/covers/clean-code.svg\", \"total_copies\": 1, \"is_active\": true}"
+              "raw": "{\n  \"title\": \"Design Patterns: Các mẫu thiết kế hướng đối tượng\",\n  \"author\": \"Erich Gamma et al.\",\n  \"category_id\": 1,\n  \"publisher\": \"NXB Khoa học & Kỹ thuật\",\n  \"description\": \"Kiểm tra giảm tổng số bản xuống 0 khi sách đang có bản borrowed.\",\n  \"cover_path\": \"assets/images/covers/clean-code.svg\",\n  \"total_copies\": 0,\n  \"is_active\": true,\n  \"publish_year\": 2018\n}"
             },
             "url": "{{baseUrl}}/books/4"
           }
@@ -160,7 +196,10 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
             ],
             "url": "{{baseUrl}}/books/1"
           }
@@ -175,7 +214,10 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
             ],
             "url": "{{baseUrl}}/statistics"
           }

@@ -1,0 +1,13 @@
+# Use this workspace to collaborate
+workspace:
+  id: 9306102c-a20d-459c-834e-70b20d7c2495
+
+localResources:
+  collections:
+    - ../tests/postman/library-rest-full.postman_collection.json
+    - ../tests/postman/member1-collection.json
+    - ../tests/postman/member2-catalog-statistics.postman_collection.json
+  specs:
+    - ../docs/openapi-auth-loans.yaml
+    - ../docs/openapi-catalog.yaml
+    - ../docs/openapi.yaml

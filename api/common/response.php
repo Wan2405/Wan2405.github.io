@@ -29,6 +29,12 @@ function sendError(int $statusCode, string $code, string $message, array $fields
     ]);
 }
 
+function methodNotAllowed(array $methods): never
+{
+    header('Allow: ' . implode(', ', $methods));
+    sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ cho tài nguyên này.');
+}
+
 function jsonSuccess(
     mixed $data = null,
     string $message = 'Thành công.',

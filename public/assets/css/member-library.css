@@ -92,7 +92,7 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 30;
+    z-index: 1070;
     transition: left 0.28s ease, transform 0.18s ease;
     font-size: 13px;
 }
@@ -103,7 +103,7 @@ body {
 }
 
 .readowl-shell.sidebar-collapsed .readowl-edge-toggle {
-    left: 14px;
+    display: none !important;
 }
 
 /* Logo Cú mèo Readowl / Thư viện giống mẫu Ảnh 2 */
@@ -301,6 +301,11 @@ body {
     cursor: pointer;
 }
 
+.readowl-shell:not(.sidebar-collapsed) .btn-owl-hamburger,
+body.admin-theme-mode .readowl-shell:not(.sidebar-collapsed) .btn-owl-hamburger {
+    display: none !important;
+}
+
 .btn-owl-hamburger:hover {
     background: var(--owl-pill-active);
 }
@@ -336,9 +341,11 @@ body {
 
 .canvas-search-box i {
     position: absolute;
-    left: 14px;
+    display: none !important;
     top: 50%;
     transform: translateY(-50%);
+    display: block !important;
+    left: 14px;
     color: #9c8c7c;
 }
 
@@ -457,7 +464,7 @@ body {
 }
 
 .book-cover-title {
-    font-family: Georgia, serif;
+    font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     font-size: 13px;
     font-weight: 700;
     line-height: 1.25;
@@ -697,6 +704,15 @@ body {
     }
 
     .readowl-edge-toggle {
+        display: flex !important;
+        position: fixed !important;
+        top: 24px !important;
+        left: calc(min(270px, 82vw) - 15px) !important;
+        z-index: 1070 !important;
+    }
+
+    .readowl-shell.sidebar-collapsed .readowl-edge-toggle,
+    body.admin-theme-mode .readowl-shell.sidebar-collapsed .readowl-edge-toggle {
         display: none !important;
     }
 
@@ -820,7 +836,7 @@ body.admin-theme-mode .readowl-edge-toggle {
 }
 
 body.admin-theme-mode .readowl-shell.sidebar-collapsed .readowl-edge-toggle {
-    left: 12px;
+    display: none !important;
 }
 
 body.admin-theme-mode .sidebar-logo {
@@ -1016,5 +1032,146 @@ body.admin-theme-mode .book-caption-sub {
 body.admin-theme-mode .shelf-ledge {
     background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
     box-shadow: 0 8px 14px rgba(15, 23, 42, 0.08);
+}
+
+/* Lớp nền mờ đóng Sidebar khi chạm ra ngoài trên Tablet & Điện thoại */
+.sidebar-mobile-backdrop {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    .sidebar-mobile-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        z-index: 1050;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+    }
+
+    .readowl-shell:not(.sidebar-collapsed) ~ .sidebar-mobile-backdrop,
+    .app-wrapper:not(.sidebar-collapsed) ~ .sidebar-mobile-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .readowl-main {
+        padding: 12px;
+    }
+
+    body.admin-theme-mode .admin-top-navbar {
+        padding: 0 16px;
+        height: 62px;
+    }
+
+    body.admin-theme-mode .admin-heading-wrap {
+        padding: 20px 16px 0;
+        margin-bottom: 16px;
+    }
+
+    body.admin-theme-mode .admin-heading-title {
+        font-size: 22px;
+    }
+
+    body.admin-theme-mode .readowl-canvas {
+        margin: 0 16px 24px;
+        padding: 18px 16px;
+    }
+
+    .shelf-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .books-row {
+        grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+        gap: 18px;
+        padding: 0 8px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .readowl-main {
+        padding: 8px;
+    }
+
+    .readowl-canvas,
+    body.admin-theme-mode .readowl-canvas {
+        padding: 14px 12px;
+        border-radius: 16px;
+    }
+
+    body.admin-theme-mode .readowl-canvas {
+        margin: 0 10px 18px;
+    }
+
+    .canvas-topbar {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .canvas-tabs {
+        flex: 1 1 auto;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: thin;
+    }
+
+    .canvas-tab-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    #category-filter,
+    #filter-category,
+    #filter-sort,
+    #filter-limit {
+        flex: 1 1 calc(50% - 6px);
+        min-width: 130px !important;
+        max-width: 100% !important;
+    }
+
+    .canvas-search-box {
+        flex: 1 1 100%;
+        width: 100%;
+        order: 10;
+    }
+
+    .shelf-title {
+        font-size: 15px;
+    }
+
+    .books-row {
+        grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
+        gap: 14px;
+        padding: 0 4px;
+    }
+}
+
+@media (max-width: 576px) {
+    .readowl-main {
+        padding: 4px;
+    }
+
+    body.admin-theme-mode .admin-heading-wrap {
+        padding: 14px 10px 0;
+    }
+
+    body.admin-theme-mode .admin-heading-title {
+        font-size: 19px;
+    }
+
+    body.admin-theme-mode .readowl-canvas {
+        margin: 0 8px 14px;
+        padding: 12px 10px;
+    }
+
+    .books-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px 10px;
+        padding: 0 2px;
+    }
 }
 

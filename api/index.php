@@ -13,9 +13,29 @@ require_once __DIR__ . '/common/auth.php';
 handleCorsAndPreflight();
 
 set_exception_handler(static function (Throwable $e): void {
+    // UNIQUE/FK vẫn là lớp bảo vệ cuối khi hai request ghi đến đồng thời.
+    if ($e instanceof PDOException) {
+        $dbCode = (int) ($e->errorInfo[1] ?? 0);
+        $resourceName = $GLOBALS['resource'] ?? '';
+        if ($dbCode === 1062 && $resourceName === 'books') {
+            sendError(409, 'DUPLICATE_ISBN', 'Mã ISBN đã được sử dụng.');
+        }
+        if ($dbCode === 1062 && $resourceName === 'categories') {
+            sendError(409, 'CATEGORY_NAME_EXISTS', 'Tên danh mục đã tồn tại.');
+        }
+        if ($dbCode === 1452 && $resourceName === 'books') {
+            sendError(409, 'CATEGORY_CHANGED', 'Danh mục đã thay đổi. Vui lòng tải lại dữ liệu.');
+        }
+        if ($dbCode === 1451 && $resourceName === 'categories') {
+            sendError(409, 'CATEGORY_IN_USE', 'Danh mục đang có sách liên kết.');
+        }
+    }
     error_log(sprintf('[Library REST API Error] %s in %s:%d', $e->getMessage(), $e->getFile(), $e->getLine()));
     sendError(500, 'SERVER_ERROR', 'Lỗi hệ thống nội bộ.');
 });
+
+validateQueryParameters();
+$_SERVER['HTTP_AUTHORIZATION'] = authorizationHeader();
 
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $uriPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -35,8 +55,11 @@ $extraSegment = $segments[2] ?? null;
 
 // 0. Healthcheck endpoint
 if ($resource === '' || $resource === 'health') {
+    if ($subSegment !== null) {
+        sendError(404, 'NOT_FOUND', 'Không tìm thấy đường dẫn yêu cầu.');
+    }
     if ($method !== 'GET') {
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được phép.');
+        methodNotAllowed(['GET']);
     }
 
     $pdo = getConnection();
@@ -62,7 +85,7 @@ switch ($resource) {
     case 'auth':
         if ($subSegment === 'register') {
             if ($method !== 'POST') {
-                sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+                methodNotAllowed(['POST']);
             }
             require __DIR__ . '/modules/auth/register.php';
             exit;
@@ -70,7 +93,7 @@ switch ($resource) {
 
         if ($subSegment === 'login') {
             if ($method !== 'POST') {
-                sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+                methodNotAllowed(['POST']);
             }
             require __DIR__ . '/modules/auth/login.php';
             exit;
@@ -78,8 +101,7 @@ switch ($resource) {
 
         if ($subSegment === 'me') {
             if ($method !== 'GET') {
-                header('Allow: GET');
-                sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+                methodNotAllowed(['GET']);
             }
             require __DIR__ . '/modules/auth/me.php';
             exit;
@@ -92,8 +114,7 @@ switch ($resource) {
             sendError(404, 'NOT_FOUND', 'Không tìm thấy đường dẫn yêu cầu.');
         }
         if ($method !== 'GET') {
-            header('Allow: GET');
-            sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+            methodNotAllowed(['GET']);
         }
         require __DIR__ . '/modules/auth/me.php';
         exit;
@@ -104,13 +125,13 @@ switch ($resource) {
     case 'users':
         if ($subSegment === null) {
             if ($method !== 'GET') {
-                sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+                methodNotAllowed(['GET']);
             }
             require __DIR__ . '/modules/users/list.php';
             exit;
         }
 
-        if (!ctype_digit($subSegment) || (int) $subSegment < 1) {
+        if (validatedInteger($subSegment, 1, 4294967295) === null) {
             sendError(404, 'NOT_FOUND', 'Không tìm thấy độc giả.');
         }
 
@@ -128,7 +149,7 @@ switch ($resource) {
             exit;
         }
 
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+        methodNotAllowed(['GET', 'PATCH', 'DELETE']);
 
     // =========================================================================
     // NGƯỜI 1: QUẢN LÝ MƯỢN – TRẢ SÁCH (LOANS)
@@ -143,10 +164,10 @@ switch ($resource) {
                 require __DIR__ . '/modules/loans/create.php';
                 exit;
             }
-            sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+            methodNotAllowed(['GET', 'POST']);
         }
 
-        if (!ctype_digit($subSegment) || (int) $subSegment < 1) {
+        if (validatedInteger($subSegment, 1, 4294967295) === null) {
             sendError(404, 'NOT_FOUND', 'Không tìm thấy phiếu mượn.');
         }
 
@@ -160,7 +181,7 @@ switch ($resource) {
             exit;
         }
 
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+        methodNotAllowed(['GET', 'PATCH']);
 
     // =========================================================================
     // NGƯỜI 2: QUẢN LÝ DANH MỤC SÁCH (CATEGORIES)

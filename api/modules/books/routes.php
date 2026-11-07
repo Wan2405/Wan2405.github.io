@@ -98,7 +98,7 @@ function handleBookRoutes(string $method, ?string $idParam): never
             'available_copies' => 'b.available_copies',
         ];
         if (!isset($allowedSort[$sort])) {
-            $errors['sort'] = 'Tham số sort chỉ chấp nhận: title, created_at.';
+            $errors['sort'] = 'Tham số sort chỉ chấp nhận: title, created_at, publish_year, available_copies.';
         }
 
         $defaultOrder = ($sort === 'title') ? 'asc' : 'desc';
@@ -266,11 +266,11 @@ function handleBookRoutes(string $method, ?string $idParam): never
     }
 
     if ($idParam === null) {
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ cho đường dẫn này.');
+        methodNotAllowed(['GET', 'POST']);
     }
 
     // Kiểm tra ID đầu sách hợp lệ
-    if (!ctype_digit($idParam) || (int) $idParam <= 0) {
+    if (validatedInteger($idParam, 1, 4294967295) === null) {
         sendError(422, 'VALIDATION_ERROR', 'Mã đầu sách (id) phải là số nguyên dương.', [
             'id' => 'Mã đầu sách không hợp lệ.',
         ]);
@@ -279,8 +279,9 @@ function handleBookRoutes(string $method, ?string $idParam): never
 
     // 3. Xem chi tiết đầu sách: GET /api/v1/books/{id}
     if ($method === 'GET') {
+        $viewer = getOptionalAuthUser();
         $book = fetchBookById($pdo, $bookId);
-        if ($book === null) {
+        if ($book === null || ((int) $book['is_active'] !== 1 && ($viewer['role'] ?? '') !== 'admin')) {
             sendError(404, 'BOOK_NOT_FOUND', 'Không tìm thấy đầu sách.');
         }
 
@@ -306,36 +307,34 @@ function handleBookRoutes(string $method, ?string $idParam): never
 
             $validated = validateBookPayload($pdo, $body, $existing);
 
-            // Đếm số bản đang thực sự giữ bởi độc giả (borrowed) và số phiếu active (pending/borrowed)
+            // Pending chưa giữ chỗ và chưa trừ tồn. Chỉ borrowed ảnh hưởng
+            // đến số bản tối thiểu; nhiều pending không chặn sửa thông tin sách.
             $loanCntStmt = $pdo->prepare("
-                SELECT
-                    COALESCE(SUM(CASE WHEN status = 'borrowed' THEN 1 ELSE 0 END), 0) AS borrowed_cnt,
-                    COALESCE(SUM(CASE WHEN status IN ('pending', 'borrowed') THEN 1 ELSE 0 END), 0) AS active_cnt
+                SELECT COUNT(*)
                 FROM loans
-                WHERE book_id = :book_id
+                WHERE book_id = :book_id AND status = 'borrowed'
             ");
             $loanCntStmt->execute(['book_id' => $bookId]);
-            $loanCounts = $loanCntStmt->fetch();
+            $borrowedLoanCount = (int) $loanCntStmt->fetchColumn();
 
             $borrowedFromStock = max(0, (int) $existing['total_copies'] - (int) $existing['available_copies']);
-            $borrowedCopies = max($borrowedFromStock, (int) ($loanCounts['borrowed_cnt'] ?? 0));
-            $activeOrBorrowed = max($borrowedCopies, (int) ($loanCounts['active_cnt'] ?? 0));
+            $borrowedCopies = max($borrowedFromStock, $borrowedLoanCount);
 
             $totalCopiesNew = $validated['total_copies'];
 
-            // S06 / B12: Không cho giảm total_copies xuống nhỏ hơn số bản đang mượn / giữ chỗ
-            if ($totalCopiesNew < $activeOrBorrowed) {
+            // S06 / B12: Không cho giảm tổng số bản xuống dưới số bản đang mượn.
+            if ($totalCopiesNew < $borrowedCopies) {
                 $pdo->rollBack();
                 sendError(
                     409,
                     'INVALID_TOTAL_COPIES',
                     sprintf(
-                        'Không thể giảm tổng số bản xuống %d vì hiện đang có %d bản đang được mượn hoặc chờ duyệt.',
+                        'Không thể giảm tổng số bản xuống %d vì hiện đang có %d bản đang được mượn.',
                         $totalCopiesNew,
-                        $activeOrBorrowed
+                        $borrowedCopies
                     ),
                     [
-                        'total_copies' => sprintf('Tổng số bản tối thiểu phải từ %d trở lên.', $activeOrBorrowed),
+                        'total_copies' => sprintf('Tổng số bản tối thiểu phải từ %d trở lên.', $borrowedCopies),
                     ]
                 );
             }
@@ -465,7 +464,7 @@ function handleBookRoutes(string $method, ?string $idParam): never
         exit;
     }
 
-    sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+    methodNotAllowed(['GET', 'PUT', 'PATCH', 'DELETE']);
 }
 
 /**
@@ -474,179 +473,84 @@ function handleBookRoutes(string $method, ?string $idParam): never
 function validateBookPayload(PDO $pdo, array $body, ?array $existingBook): array
 {
     $errors = [];
+    $title = validatedText($body, 'title', $existingBook['title'] ?? null, 200, $errors, true);
+    $author = validatedText($body, 'author', $existingBook['author'] ?? null, 200, $errors, true);
+    $isbn = validatedText($body, 'isbn', $existingBook['isbn'] ?? null, 20, $errors);
+    $publisher = validatedText($body, 'publisher', $existingBook['publisher'] ?? null, 200, $errors);
+    $description = validatedText($body, 'description', $existingBook['description'] ?? null, 5000, $errors);
+    $coverPath = validatedText($body, 'cover_path', $existingBook['cover_path'] ?? null, 255, $errors);
 
-    $title = array_key_exists('title', $body) && is_string($body['title'])
-        ? trim($body['title'])
-        : ($existingBook['title'] ?? '');
-    if ($title === '') {
-        $errors['title'] = 'Tên sách (title) không được để trống.';
-    } elseif (mb_strlen($title, 'UTF-8') > 200) {
-        $errors['title'] = 'Tên sách không được vượt quá 200 ký tự.';
-    }
-
-    $author = array_key_exists('author', $body) && is_string($body['author'])
-        ? trim($body['author'])
-        : ($existingBook['author'] ?? '');
-    if ($author === '') {
-        $errors['author'] = 'Tác giả (author) không được để trống.';
-    } elseif (mb_strlen($author, 'UTF-8') > 200) {
-        $errors['author'] = 'Tên tác giả không được vượt quá 200 ký tự.';
-    }
-
-    // category_id
-    $categoryId = null;
-    $rawCat = array_key_exists('category_id', $body)
-        ? $body['category_id']
-        : ($existingBook['category_id'] ?? null);
-
-    if ($rawCat === null || $rawCat === '') {
-        $errors['category_id'] = 'Danh mục sách (category_id) là bắt buộc.';
-    } elseif (is_int($rawCat) && $rawCat > 0) {
-        $categoryId = $rawCat;
-    } elseif (is_string($rawCat) && ctype_digit(trim($rawCat)) && (int) trim($rawCat) > 0) {
-        $categoryId = (int) trim($rawCat);
+    $categoryId = validatedInteger($body['category_id'] ?? ($existingBook['category_id'] ?? null), 1, 4294967295);
+    if ($categoryId === null || (array_key_exists('category_id', $body) && $body['category_id'] === null)) {
+        $errors['category_id'] = 'Mã danh mục phải là số nguyên dương hợp lệ.';
     } else {
-        $errors['category_id'] = 'Mã danh mục (category_id) phải là số nguyên dương.';
-    }
-
-    if ($categoryId !== null) {
-        $catStmt = $pdo->prepare('SELECT id FROM categories WHERE id = :id LIMIT 1');
-        $catStmt->execute(['id' => $categoryId]);
-        if (!$catStmt->fetch()) {
-            $errors['category_id'] = 'Danh mục sách được chọn không tồn tại trong hệ thống.';
+        $stmt = $pdo->prepare('SELECT id FROM categories WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $categoryId]);
+        if (!$stmt->fetch()) {
+            $errors['category_id'] = 'Danh mục sách được chọn không tồn tại.';
         }
     }
 
-    // isbn (tùy chọn, duy nhất)
-    $isbn = null;
-    $rawIsbn = array_key_exists('isbn', $body)
-        ? $body['isbn']
-        : ($existingBook['isbn'] ?? null);
-    if ($rawIsbn !== null && trim((string) $rawIsbn) !== '') {
-        $isbn = trim((string) $rawIsbn);
-        if (mb_strlen($isbn, 'UTF-8') > 20) {
-            $errors['isbn'] = 'Mã ISBN không được vượt quá 20 ký tự.';
-        }
+    $rawTotal = array_key_exists('total_copies', $body) ? $body['total_copies'] : ($existingBook['total_copies'] ?? null);
+    $totalCopies = validatedInteger($rawTotal, 0, 10000);
+    if ($totalCopies === null) {
+        $errors['total_copies'] = 'Tổng số bản phải là số nguyên từ 0 đến 10000.';
     }
 
-    // publisher (tùy chọn)
-    $publisher = null;
-    $rawPub = array_key_exists('publisher', $body)
-        ? $body['publisher']
-        : ($existingBook['publisher'] ?? null);
-    if ($rawPub !== null && trim((string) $rawPub) !== '') {
-        $publisher = trim((string) $rawPub);
-        if (mb_strlen($publisher, 'UTF-8') > 200) {
-            $errors['publisher'] = 'Tên nhà xuất bản không được vượt quá 200 ký tự.';
-        }
-    }
-
-    // publish_year (tùy chọn, 1000 .. năm hiện tại + 1)
+    $rawYear = array_key_exists('publish_year', $body) ? $body['publish_year'] : ($existingBook['publish_year'] ?? null);
     $publishYear = null;
-    $maxYear = (int) date('Y') + 1;
-    $rawYear = array_key_exists('publish_year', $body)
-        ? $body['publish_year']
-        : ($existingBook['publish_year'] ?? null);
     if ($rawYear !== null && $rawYear !== '') {
-        if (is_int($rawYear)) {
-            $publishYear = $rawYear;
-        } elseif (is_string($rawYear) && ctype_digit(trim($rawYear))) {
-            $publishYear = (int) trim($rawYear);
-        } else {
-            $errors['publish_year'] = 'Năm xuất bản phải là số nguyên hợp lệ.';
-        }
-
-        if ($publishYear !== null && ($publishYear < 1000 || $publishYear > $maxYear)) {
-            $errors['publish_year'] = sprintf('Năm xuất bản phải nằm trong khoảng từ 1000 đến %d.', $maxYear);
+        $publishYear = validatedInteger($rawYear, 1000, (int) date('Y') + 1);
+        if ($publishYear === null) {
+            $errors['publish_year'] = 'Năm xuất bản phải là số nguyên từ 1000 đến năm hiện tại + 1.';
         }
     }
 
-    // description (tùy chọn)
-    $description = null;
-    $rawDesc = array_key_exists('description', $body)
-        ? $body['description']
-        : ($existingBook['description'] ?? null);
-    if ($rawDesc !== null && trim((string) $rawDesc) !== '') {
-        $description = trim((string) $rawDesc);
-        if (mb_strlen($description, 'UTF-8') > 5000) {
-            $errors['description'] = 'Mô tả sách không được vượt quá 5000 ký tự.';
-        }
-    }
-
-    // cover_path (tùy chọn, đường dẫn nội bộ)
-    $coverPath = null;
-    $rawCover = array_key_exists('cover_path', $body)
-        ? $body['cover_path']
-        : ($existingBook['cover_path'] ?? null);
-    if ($rawCover !== null && trim((string) $rawCover) !== '') {
-        $coverPath = trim((string) $rawCover);
-        if (mb_strlen($coverPath, 'UTF-8') > 255) {
-            $errors['cover_path'] = 'Đường dẫn ảnh bìa không được vượt quá 255 ký tự.';
-        } elseif (preg_match('#^https?://#i', $coverPath)) {
-            $errors['cover_path'] = 'Ảnh bìa chỉ sử dụng đường dẫn nội bộ trong dự án.';
-        }
-    }
-
-    // total_copies (bắt buộc >= 0)
-    $totalCopies = null;
-    $rawTotal = array_key_exists('total_copies', $body)
-        ? $body['total_copies']
-        : ($existingBook['total_copies'] ?? null);
-    if ($rawTotal === null || $rawTotal === '') {
-        $errors['total_copies'] = 'Tổng số bản sách (total_copies) là bắt buộc.';
-    } elseif (is_int($rawTotal) && $rawTotal >= 0 && $rawTotal <= 10000) {
-        $totalCopies = $rawTotal;
-    } elseif (is_string($rawTotal) && ctype_digit(trim($rawTotal)) && (int) trim($rawTotal) <= 10000) {
-        $totalCopies = (int) trim($rawTotal);
-    } else {
-        $errors['total_copies'] = 'Tổng số bản sách (total_copies) phải là số nguyên không âm (0 - 10000).';
-    }
-
-    // is_active (0 hoặc 1, mặc định 1 khi tạo mới)
-    $isActive = $existingBook !== null ? (int) $existingBook['is_active'] : 1;
-    if (array_key_exists('is_active', $body) && $body['is_active'] !== null && $body['is_active'] !== '') {
-        $rawActive = $body['is_active'];
-        if ($rawActive === 1 || $rawActive === '1' || $rawActive === true || $rawActive === 'true') {
+    $isActive = $existingBook === null ? 1 : (int) $existingBook['is_active'];
+    if (array_key_exists('is_active', $body)) {
+        if (in_array($body['is_active'], [1, '1', true, 'true'], true)) {
             $isActive = 1;
-        } elseif ($rawActive === 0 || $rawActive === '0' || $rawActive === false || $rawActive === 'false') {
+        } elseif (in_array($body['is_active'], [0, '0', false, 'false'], true)) {
             $isActive = 0;
         } else {
-            $errors['is_active'] = 'Trạng thái hoạt động (is_active) chỉ chấp nhận 0 hoặc 1.';
+            $errors['is_active'] = 'Trạng thái chỉ chấp nhận 0/1 hoặc true/false.';
         }
     }
 
-    if (!empty($errors)) {
+    // Allowlist lấy từ chính bộ SVG có sẵn để không loại các ảnh bìa đang dùng.
+    // So khớp nguyên đường dẫn tương đối; không nhận URL, ../, đường dẫn tuyệt đối.
+    if (array_key_exists('cover_path', $body) && $coverPath !== null && !isset($errors['cover_path'])) {
+        $allowedCovers = array_map(
+            static fn(string $file): string => 'assets/images/covers/' . basename($file),
+            glob(__DIR__ . '/../../../public/assets/images/covers/*.svg') ?: []
+        );
+        if (!in_array($coverPath, $allowedCovers, true)) {
+            $errors['cover_path'] = 'Vui lòng chọn ảnh bìa trong bộ ảnh có sẵn của dự án.';
+        }
+    }
+
+    if ($errors) {
         sendError(422, 'VALIDATION_ERROR', 'Dữ liệu đầu sách không hợp lệ.', $errors);
     }
 
-    // Kiểm tra trùng ISBN -> 409 Conflict
     if ($isbn !== null) {
-        if ($existingBook === null) {
-            $isbnStmt = $pdo->prepare('SELECT id FROM books WHERE isbn = :isbn LIMIT 1');
-            $isbnStmt->execute(['isbn' => $isbn]);
-        } else {
-            $isbnStmt = $pdo->prepare('SELECT id FROM books WHERE isbn = :isbn AND id <> :id LIMIT 1');
-            $isbnStmt->execute(['isbn' => $isbn, 'id' => (int) $existingBook['id']]);
+        $sql = 'SELECT id FROM books WHERE isbn = :isbn';
+        $params = ['isbn' => $isbn];
+        if ($existingBook !== null) {
+            $sql .= ' AND id <> :id';
+            $params['id'] = (int) $existingBook['id'];
         }
-
-        if ($isbnStmt->fetch()) {
-            sendError(409, 'DUPLICATE_ISBN', 'Mã ISBN này đã tồn tại ở một đầu sách khác trong hệ thống.', [
-                'isbn' => 'Mã ISBN đã được sử dụng.',
-            ]);
+        $stmt = $pdo->prepare($sql . ' LIMIT 1');
+        $stmt->execute($params);
+        if ($stmt->fetch()) {
+            sendError(409, 'DUPLICATE_ISBN', 'Mã ISBN đã tồn tại.', ['isbn' => 'Mã ISBN đã được sử dụng.']);
         }
     }
 
     return [
-        'category_id'  => $categoryId,
-        'isbn'         => $isbn,
-        'title'        => $title,
-        'author'       => $author,
-        'publisher'    => $publisher,
-        'publish_year' => $publishYear,
-        'description'  => $description,
-        'cover_path'   => $coverPath,
-        'total_copies' => $totalCopies,
-        'is_active'    => $isActive,
+        'category_id' => $categoryId, 'isbn' => $isbn, 'title' => $title, 'author' => $author,
+        'publisher' => $publisher, 'publish_year' => $publishYear, 'description' => $description,
+        'cover_path' => $coverPath, 'total_copies' => $totalCopies, 'is_active' => $isActive,
     ];
 }
 

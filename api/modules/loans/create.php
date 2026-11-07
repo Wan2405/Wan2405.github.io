@@ -15,10 +15,8 @@ $fields = [];
 $bookId = 0;
 if (!array_key_exists('book_id', $body)) {
     $fields['book_id'] = 'Vui lòng cung cấp mã đầu sách (book_id).';
-} elseif (is_int($body['book_id']) && $body['book_id'] > 0) {
-    $bookId = $body['book_id'];
-} elseif (is_string($body['book_id']) && ctype_digit(trim($body['book_id'])) && (int) trim($body['book_id']) > 0) {
-    $bookId = (int) trim($body['book_id']);
+} elseif (validatedInteger($body['book_id'], 1, 4294967295) !== null) {
+    $bookId = validatedInteger($body['book_id'], 1, 4294967295);
 } else {
     $fields['book_id'] = 'Mã đầu sách (book_id) phải là số nguyên dương.';
 }

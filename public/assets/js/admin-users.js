@@ -4,7 +4,7 @@
 const ADMIN_SIDEBAR_ITEMS = [
     {
         icon: 'bi-grid-1x2-fill',
-        title: 'Tổng quan (Dashboard)',
+        title: 'Tổng quan',
         href: '/admin/dashboard.html',
         active: false
     },
@@ -30,6 +30,12 @@ const ADMIN_SIDEBAR_ITEMS = [
         icon: 'bi-tags-fill',
         title: 'Quản lý danh mục',
         href: '/admin/categories.html',
+        active: false
+    },
+    {
+        icon: 'bi-search',
+        title: 'Tra cứu sách công khai',
+        href: '/index.html',
         active: false
     }
 ];
@@ -604,7 +610,7 @@ btnNextPage.addEventListener('click', function () {
 });
 
 function handleLogout() {
-    sessionStorage.removeItem('token');
+    window.LibraryApi.clearSession();
     window.location.replace('../login.html');
 }
 

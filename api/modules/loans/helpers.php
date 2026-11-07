@@ -83,6 +83,7 @@ function formatLoanRow(array $row, string $viewerRole)
         'book_cover' => $row['book_cover'] ?? null,
         'book_available_copies' => isset($row['book_available_copies']) ? (int) $row['book_available_copies'] : null,
         'book_total_copies' => isset($row['book_total_copies']) ? (int) $row['book_total_copies'] : null,
+        'category_id' => isset($row['category_id']) ? (int) $row['category_id'] : null,
         'category_name' => $row['category_name'] ?? null,
         'status' => $row['status'],
         'is_overdue' => $isOverdue,

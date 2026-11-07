@@ -155,6 +155,7 @@ $listSql = "
         u.email AS user_email,
         u.is_active AS user_is_active,
         l.book_id,
+        b.category_id AS category_id,
         b.title AS book_title,
         b.author AS book_author,
         b.cover_path AS book_cover,

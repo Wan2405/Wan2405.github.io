@@ -145,6 +145,14 @@
         }
 
         if (!response.ok) {
+            // Chỉ xóa đúng phiên đã gửi request bị 401. Một response cũ
+            // không được xóa phiên mới vừa đăng nhập ở request khác.
+            // Đăng nhập sai mật khẩu cũng không làm mất một phiên còn hợp lệ.
+            const isAuthSubmission = /^\/auth\/(login|register)(?:\?|$)/.test(cleanPath);
+            if (response.status === 401 && !isAuthSubmission && token
+                && headers.Authorization === 'Bearer ' + token && getToken() === token) {
+                clearSession();
+            }
             const error = (data && data.error) || {
                 code: 'HTTP_ERROR',
                 message: 'Yêu cầu không thành công.',
@@ -156,7 +164,9 @@
         if (data && data.data) {
             if (cleanPath.startsWith('/auth/login') && data.data.access_token) {
                 setSession(data.data.access_token, data.data.user || null);
-            } else if (cleanPath.startsWith('/auth/me') && data.data.id) {
+            } else if (cleanPath.startsWith('/auth/me') && data.data.id
+                && token && getToken() === token) {
+                // Response hồ sơ về muộn sau đăng xuất không được khôi phục token.
                 setSession(token, data.data);
             } else if ((cleanPath === '/books' || cleanPath.startsWith('/books?')) && Array.isArray(data.data)) {
                 data.data.books = data.data;
@@ -180,6 +190,46 @@
 
     async function request(endpoint, options = {}) {
         return apiFetch(endpoint, options);
+    }
+
+    /** Tải đủ các trang sách nhưng giữ giới hạn 50 bản ghi cho từng request API. */
+    async function fetchAllBooks(query = {}, isCurrent = () => true) {
+        const books = [];
+        const seen = new Set();
+        let first = null;
+        let page = 1;
+        let totalPages = 1;
+        do {
+            if (!isCurrent()) return null;
+            const result = await apiFetch('/books', { query: { ...query, page, limit: 50 } });
+            if (!isCurrent()) return null;
+            const rows = result && (Array.isArray(result.data) ? result.data : result.data && result.data.books);
+            if (!Array.isArray(rows)) {
+                throw new Error('Dữ liệu danh sách sách không hợp lệ. Vui lòng tải lại.');
+            }
+            if (!first) first = result;
+            rows.forEach(book => {
+                const id = String(book.id);
+                if (!seen.has(id)) {
+                    seen.add(id);
+                    books.push(book);
+                }
+            });
+            totalPages = Math.max(1, Number(result.meta && result.meta.total_pages) || 1);
+            if (!Number.isSafeInteger(totalPages)) {
+                throw new Error('Thông tin phân trang sách không hợp lệ.');
+            }
+            if (rows.length === 0 && page < totalPages) {
+                throw new Error('Danh sách sách đã thay đổi. Vui lòng tải lại.');
+            }
+            page += 1;
+        } while (page <= totalPages);
+
+        return {
+            ...first,
+            data: { categories: (first.data && first.data.categories) || [], books },
+            meta: { ...first.meta, total: books.length },
+        };
     }
 
     function showAlert(containerOrId, type, message, autoHideMs = 4500) {
@@ -329,16 +379,39 @@
         const shell = document.getElementById('app-wrapper') || document.getElementById('readowl-shell');
         if (!shell) return;
 
-        function checkMobileCollapse() {
-            if (window.innerWidth <= 991.98) {
-                if (!shell.classList.contains('sidebar-collapsed')) {
+        let wasMobile = window.innerWidth <= 991.98;
+        if (wasMobile) {
+            shell.classList.add('sidebar-collapsed');
+            const icon = document.getElementById('edge-toggle-icon');
+            if (icon) icon.className = 'bi bi-chevron-right';
+        }
+
+        window.addEventListener('resize', () => {
+            const isMobile = window.innerWidth <= 991.98;
+            if (isMobile !== wasMobile) {
+                wasMobile = isMobile;
+                const icon = document.getElementById('edge-toggle-icon');
+                if (isMobile) {
+                    shell.classList.add('sidebar-collapsed');
+                    if (icon) icon.className = 'bi bi-chevron-right';
+                } else {
+                    shell.classList.remove('sidebar-collapsed');
+                    if (icon) icon.className = 'bi bi-chevron-left';
+                }
+            }
+        });
+
+        // Tự động đóng sidebar trên màn hình nhỏ khi bấm chọn mục trên menu
+        const sidebarEl = shell.querySelector('.readowl-sidebar, .purple-sidebar');
+        if (sidebarEl) {
+            sidebarEl.addEventListener('click', (e) => {
+                if (window.innerWidth <= 991.98 && e.target.closest('.readowl-nav-btn, .sidebar-link')) {
                     shell.classList.add('sidebar-collapsed');
                     const icon = document.getElementById('edge-toggle-icon');
                     if (icon) icon.className = 'bi bi-chevron-right';
                 }
-            }
+            });
         }
-        checkMobileCollapse();
 
         // Tao backdrop dong sidebar tren thiet bi di dong
         let backdrop = document.getElementById('mobile-sidebar-backdrop');
@@ -381,6 +454,7 @@
         escapeHtml,
         request,
         apiFetch,
+        fetchAllBooks,
         showAlert,
         renderNavbar,
         requireAdminPage,

@@ -189,7 +189,8 @@ async function deleteOrDeactivateBook(book) {
     }
     try {
         const res = await apiFetch('/books/' + book.id, { method: 'DELETE' });
-        showBanner(res.message || 'Đã xử lý đầu sách.', 'success');
+        // DELETE có thể trả 204 không có body (res = null) hoặc 200 khi ngừng hoạt động.
+        showBanner((res && res.message) || 'Đã xử lý đầu sách.', 'success');
         await loadBooks();
     } catch (error) {
         showBanner(error.message || 'Không thể xóa đầu sách.', 'danger');
@@ -257,8 +258,10 @@ async function loadBooks() {
     }
 
     try {
-        const res = await apiFetch('/books?' + params.toString());
-        if (seq !== latestBooksSeq) {
+        const res = await window.LibraryApi.fetchAllBooks(
+            Object.fromEntries(params), () => seq === latestBooksSeq
+        );
+        if (seq !== latestBooksSeq || res === null) {
             return;
         }
         allCategories = (res.data && res.data.categories) || [];

@@ -50,26 +50,9 @@ function handleCategoryRoutes(string $method, ?string $idParam): never
         requireAdmin();
         $body = readJsonBody();
 
-        $name = isset($body['name']) && is_string($body['name']) ? trim($body['name']) : '';
-        $description = array_key_exists('description', $body) && $body['description'] !== null
-            ? trim((string) $body['description'])
-            : null;
-
-        $errors = [];
-        $nameLen = mb_strlen($name, 'UTF-8');
-        if ($name === '') {
-            $errors['name'] = 'Tên danh mục không được để trống.';
-        } elseif ($nameLen < 2 || $nameLen > 100) {
-            $errors['name'] = 'Tên danh mục phải từ 2 đến 100 ký tự.';
-        }
-
-        if ($description !== null && mb_strlen($description, 'UTF-8') > 1000) {
-            $errors['description'] = 'Mô tả danh mục không được vượt quá 1000 ký tự.';
-        }
-
-        if (!empty($errors)) {
-            sendError(422, 'VALIDATION_ERROR', 'Dữ liệu danh mục không hợp lệ.', $errors);
-        }
+        $validated = validateCategoryPayload($body, null);
+        $name = $validated['name'];
+        $description = $validated['description'];
 
         $dupStmt = $pdo->prepare('SELECT id FROM categories WHERE LOWER(name) = LOWER(:name) LIMIT 1');
         $dupStmt->execute(['name' => $name]);
@@ -96,11 +79,11 @@ function handleCategoryRoutes(string $method, ?string $idParam): never
     }
 
     if ($idParam === null) {
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ cho đường dẫn này.');
+        methodNotAllowed(['GET', 'POST']);
     }
 
     // Kiểm tra ID danh mục hợp lệ
-    if (!ctype_digit($idParam) || (int) $idParam <= 0) {
+    if (validatedInteger($idParam, 1, 4294967295) === null) {
         sendError(422, 'VALIDATION_ERROR', 'Mã danh mục (id) phải là số nguyên dương.', [
             'id' => 'Mã danh mục không hợp lệ.',
         ]);
@@ -126,26 +109,9 @@ function handleCategoryRoutes(string $method, ?string $idParam): never
         }
 
         $body = readJsonBody();
-        $name = isset($body['name']) && is_string($body['name']) ? trim($body['name']) : '';
-        $description = array_key_exists('description', $body)
-            ? ($body['description'] !== null ? trim((string) $body['description']) : null)
-            : $existing['description'];
-
-        $errors = [];
-        $nameLen = mb_strlen($name, 'UTF-8');
-        if ($name === '') {
-            $errors['name'] = 'Tên danh mục không được để trống.';
-        } elseif ($nameLen < 2 || $nameLen > 100) {
-            $errors['name'] = 'Tên danh mục phải từ 2 đến 100 ký tự.';
-        }
-
-        if ($description !== null && mb_strlen($description, 'UTF-8') > 1000) {
-            $errors['description'] = 'Mô tả danh mục không được vượt quá 1000 ký tự.';
-        }
-
-        if (!empty($errors)) {
-            sendError(422, 'VALIDATION_ERROR', 'Dữ liệu cập nhật danh mục không hợp lệ.', $errors);
-        }
+        $validated = validateCategoryPayload($body, $existing);
+        $name = $validated['name'];
+        $description = $validated['description'];
 
         $dupStmt = $pdo->prepare('
             SELECT id FROM categories
@@ -213,7 +179,7 @@ function handleCategoryRoutes(string $method, ?string $idParam): never
         );
     }
 
-    sendError(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.');
+    methodNotAllowed(['GET', 'PUT', 'PATCH', 'DELETE']);
 }
 
 function fetchCategoryById(PDO $pdo, int $id): ?array
@@ -247,4 +213,18 @@ function fetchCategoryById(PDO $pdo, int $id): ?array
         'active_book_count' => (int) $row['active_book_count'],
         'created_at'        => $row['created_at'],
     ];
+}
+
+function validateCategoryPayload(array $body, ?array $existing): array
+{
+    $errors = [];
+    $name = validatedText($body, 'name', $existing['name'] ?? null, 100, $errors, true);
+    $description = validatedText($body, 'description', $existing['description'] ?? null, 1000, $errors);
+    if (is_string($name) && mb_strlen($name, 'UTF-8') < 2) {
+        $errors['name'] = 'Tên danh mục phải có từ 2 đến 100 ký tự.';
+    }
+    if ($errors) {
+        sendError(422, 'VALIDATION_ERROR', 'Dữ liệu danh mục không hợp lệ.', $errors);
+    }
+    return ['name' => $name, 'description' => $description];
 }

@@ -140,9 +140,12 @@ try {
     assertTest($response['status'] === 201 && ($response['body']['data']['is_active'] ?? null) === 0,
         'Them sach luu dung is_active = 0', $response);
     $temporaryBookId = (int) $response['body']['data']['id'];
-    $inactiveBook = callApi('GET', '/books/' . $temporaryBookId);
+    $inactiveBook = callApi('GET', '/books/' . $temporaryBookId, null, $adminToken);
     assertTest(($inactiveBook['body']['data']['is_active'] ?? null) === 0,
-        'Trang thai ngung cho muon da luu vao CSDL', $inactiveBook);
+        'Admin doc duoc sach ngung cho muon da luu vao CSDL', $inactiveBook);
+    expectStatus(callApi('GET', '/books/' . $temporaryBookId), 404, 'Guest khong doc duoc sach inactive');
+    expectStatus(callApi('GET', '/books/' . $temporaryBookId, null, $memberToken),
+        404, 'Member khong doc duoc sach inactive');
     expectStatus(callApi('POST', '/loans', ['book_id' => $temporaryBookId], $memberToken),
         409, 'Khong muon duoc sach ngung cho muon');
     expectStatus(callApi('DELETE', '/books/' . $temporaryBookId, null, $adminToken),

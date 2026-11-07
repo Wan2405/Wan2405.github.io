@@ -12,7 +12,7 @@ declare(strict_types=1);
 function handleStatisticsRoutes(string $method, ?string $subRoute): never
 {
     if ($method !== 'GET') {
-        sendError(405, 'METHOD_NOT_ALLOWED', 'Module thống kê chỉ hỗ trợ phương thức GET.');
+        methodNotAllowed(['GET']);
     }
 
     // B18 / B19: Bắt buộc quyền Admin (Guest -> 401, Member -> 403)

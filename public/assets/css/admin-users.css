@@ -115,7 +115,7 @@ body {
 }
 
 .app-wrapper.sidebar-collapsed .sidebar-edge-toggle {
-    left: 12px;
+    display: none !important;
 }
 
 /* Logo ở đỉnh Sidebar */
@@ -270,6 +270,11 @@ body {
     cursor: pointer;
     transition: all 0.15s ease;
     flex-shrink: 0;
+}
+
+.app-wrapper:not(.sidebar-collapsed) .btn-hamburger,
+.admin-layout:not(.sidebar-collapsed) .btn-hamburger {
+    display: none !important;
 }
 
 .btn-hamburger:hover {
@@ -692,6 +697,15 @@ body {
 
     .sidebar-edge-toggle,
     .sidebar-collapse-btn {
+        display: flex !important;
+        position: fixed !important;
+        top: 24px !important;
+        left: calc(min(270px, 82vw) - 16px) !important;
+        z-index: 1070 !important;
+    }
+
+    .app-wrapper.sidebar-collapsed .sidebar-edge-toggle,
+    .admin-layout.sidebar-collapsed .sidebar-collapse-btn {
         display: none !important;
     }
 
@@ -862,7 +876,7 @@ body {
 }
 
 .admin-layout.sidebar-collapsed .sidebar-collapse-btn {
-    left: 12px;
+    display: none !important;
 }
 
 .admin-layout.sidebar-collapsed .sidebar-collapse-btn i::before {

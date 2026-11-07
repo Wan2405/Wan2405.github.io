@@ -182,7 +182,29 @@ function createShelfBookElement(book, loanInfo) {
    ========================================================================== */
 function renderLibraryViews() {
     const books = libraryState.books;
-    const loans = libraryState.loans;
+    const selectedCategoryObj = libraryState.categories.find(function (c) {
+        return Number(c.id) === Number(libraryState.categoryId);
+    });
+    const keyword = (libraryState.q || '').toLowerCase();
+    const loans = libraryState.loans.filter(function (l) {
+        if (libraryState.categoryId > 0) {
+            const matchById = l.category_id !== undefined && l.category_id !== null
+                ? Number(l.category_id) === Number(libraryState.categoryId)
+                : (selectedCategoryObj && l.category_name === selectedCategoryObj.name);
+            if (!matchById) {
+                return false;
+            }
+        }
+        if (keyword !== '') {
+            const titleMatch = (l.book_title || '').toLowerCase().indexOf(keyword) !== -1;
+            const authorMatch = (l.book_author || '').toLowerCase().indexOf(keyword) !== -1;
+            const catMatch = (l.category_name || '').toLowerCase().indexOf(keyword) !== -1;
+            if (!titleMatch && !authorMatch && !catMatch) {
+                return false;
+            }
+        }
+        return true;
+    });
 
     document.getElementById('tab-loans-count').textContent = loans.length;
 
@@ -194,7 +216,10 @@ function renderLibraryViews() {
     const shelfActive = document.getElementById('shelf-active-loans');
     shelfActive.textContent = '';
 
-    if (activeLoans.length === 0) {
+    const hasAnyActiveLoan = libraryState.loans.some(function (l) {
+        return l.status === 'borrowed' || l.status === 'pending';
+    });
+    if (activeLoans.length === 0 && !hasAnyActiveLoan) {
         // Nếu chưa có sách đang mượn, hiển thị 3 cuốn gợi ý đầu tiên trên kệ 1
         books.slice(0, 3).forEach(function (b) {
             shelfActive.appendChild(createShelfBookElement(b, null));
@@ -299,7 +324,9 @@ function renderLoansTable(loans) {
         const td = document.createElement('td');
         td.colSpan = 6;
         td.className = 'text-center py-4 text-secondary';
-        td.textContent = 'Bạn chưa có phiếu mượn nào. Hãy chọn một cuốn sách trên kệ để gửi yêu cầu mượn!';
+        td.textContent = (libraryState.categoryId > 0 || libraryState.q !== '')
+            ? 'Không có phiếu mượn nào phù hợp với danh mục hoặc từ khóa đã chọn.'
+            : 'Bạn chưa có phiếu mượn nào. Hãy chọn một cuốn sách trên kệ để gửi yêu cầu mượn!';
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
@@ -529,8 +556,10 @@ async function loadBooksAndLoans() {
     }
 
     try {
-        const booksRes = await apiFetch('/books?' + params.toString());
-        if (loadVersion !== libraryLoadVersion) {
+        const booksRes = await window.LibraryApi.fetchAllBooks(
+            Object.fromEntries(params), () => loadVersion === libraryLoadVersion
+        );
+        if (loadVersion !== libraryLoadVersion || booksRes === null) {
             return;
         }
         const loans = await loadAllMemberLoans(loadVersion);
@@ -585,7 +614,7 @@ document.getElementById('category-filter').addEventListener('change', function (
 });
 
 document.getElementById('btn-member-logout').addEventListener('click', function () {
-    sessionStorage.removeItem('token');
+    window.LibraryApi.clearSession();
     window.location.replace('login.html');
 });
 

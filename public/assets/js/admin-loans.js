@@ -1,7 +1,7 @@
 const ADMIN_SIDEBAR_ITEMS = [
     {
         icon: 'bi-grid-1x2-fill',
-        title: 'Tổng quan (Dashboard)',
+        title: 'Tổng quan',
         href: '/admin/dashboard.html',
         active: false
     },
@@ -27,6 +27,12 @@ const ADMIN_SIDEBAR_ITEMS = [
         icon: 'bi-tags-fill',
         title: 'Quản lý danh mục',
         href: '/admin/categories.html',
+        active: false
+    },
+    {
+        icon: 'bi-search',
+        title: 'Tra cứu sách công khai',
+        href: '/index.html',
         active: false
     }
 ];
@@ -335,7 +341,7 @@ function renderLoansTable(loans) {
         if (links.return || loan.status === 'borrowed') {
             const btnReturn = document.createElement('button');
             btnReturn.type = 'button';
-            btnReturn.className = 'btn btn-sm btn-primary text-white';
+            btnReturn.className = 'btn btn-sm btn-success text-white';
             btnReturn.textContent = 'Nhận trả';
             btnReturn.addEventListener('click', function () {
                 openConfirmLoanAction('returned', loan);
@@ -437,7 +443,7 @@ function openConfirmLoanAction(targetStatus, loan) {
         titleEl.textContent = 'Xác nhận đã nhận trả sách';
         msgEl.textContent = 'Xác nhận độc giả "' + loan.user_name + '" đã mang trả cuốn "' + loan.book_title + '"?';
         noteEl.textContent = 'Hệ thống sẽ chuyển trạng thái sang Đã trả (returned), lưu thời điểm trả và cộng lại 1 bản khả dụng vào kho sách.';
-        btnSubmit.className = 'btn btn-primary';
+        btnSubmit.className = 'btn btn-success text-white';
         btnSubmit.textContent = 'Xác nhận nhận trả';
     }
 
@@ -612,7 +618,7 @@ btnNextPage.addEventListener('click', function () {
 });
 
 function handleLogout() {
-    sessionStorage.removeItem('token');
+    window.LibraryApi.clearSession();
     window.location.replace('../login.html');
 }
 

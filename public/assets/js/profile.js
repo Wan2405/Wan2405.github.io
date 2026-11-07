@@ -23,7 +23,7 @@ if (btnHamburgerToggle) {
 }
 
 function doLogout() {
-    sessionStorage.removeItem('token');
+    window.LibraryApi.clearSession();
     window.location.replace('login.html');
 }
 
@@ -40,11 +40,12 @@ function renderProfileSidebar(role) {
 
     const items = role === 'admin'
         ? [
-            { icon: 'bi-grid-1x2-fill', title: 'Tổng quan (Dashboard)', href: 'admin/dashboard.html' },
+            { icon: 'bi-grid-1x2-fill', title: 'Tổng quan', href: 'admin/dashboard.html' },
             { icon: 'bi-people-fill', title: 'Quản lý độc giả', href: 'admin/users.html' },
             { icon: 'bi-journal-arrow-up', title: 'Quản lý mượn – trả', href: 'admin/loans.html' },
             { icon: 'bi-book-half', title: 'Quản lý kho sách', href: 'admin/books.html' },
-            { icon: 'bi-tags-fill', title: 'Quản lý danh mục', href: 'admin/categories.html' }
+            { icon: 'bi-tags-fill', title: 'Quản lý danh mục', href: 'admin/categories.html' },
+            { icon: 'bi-search', title: 'Tra cứu sách công khai', href: 'index.html' }
         ]
         : [
             { icon: 'bi-journal-bookmark-fill', title: 'Thư viện & Mượn sách', href: 'my-loans.html' }

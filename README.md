@@ -33,7 +33,7 @@ LTW-GK/
 │       └── statistics/                 # GET /statistics, /statistics/{top-books,overdue,categories}
 ├── config/
 │   ├── app.php                         # Cấu hình JWT TTL (900s), giới hạn 3 cuốn, hạn mượn 14 ngày
-│   ├── database.php                    # Cấu hình kết nối MySQL (host, port, dbname, username, password)
+│   ├── database.php                    # Cấu hình kết nối MySQL (host, port, name/user/password; hỗ trợ dbname/username/pass)
 │   └── jwt-secret.php                  # Khóa bí mật JWT (sinh tự động qua scripts/init-auth.php)
 ├── database/
 │   ├── schema.sql                      # DDL tạo 4 bảng: users, categories, books, loans (InnoDB)
@@ -60,7 +60,7 @@ LTW-GK/
 │   └── init-auth.php                   # Script khởi tạo khóa bí mật JWT cho máy cục bộ
 ├── tests/
 │   ├── test-db.php                     # Kiểm tra kết nối MySQL và danh sách bảng
-│   ├── run-api-tests.php               # Script kiểm thử tự động 32 kịch bản (Người 1)
+│   ├── run-api-tests.php               # Script kiểm thử tự động 34 phép kiểm tra (Người 1)
 │   ├── run-member2-tests.php           # Script kiểm thử tự động 31 kịch bản (Người 2)
 │   └── postman/
 │       ├── member1-collection.json     # Postman Collection phần Người 1
@@ -72,6 +72,14 @@ LTW-GK/
 ---
 
 ## 3. Hướng dẫn cài đặt & chạy nhanh
+
+### Chuẩn bị môi trường
+
+- PHP >= 8.1; bật ctype, mbstring, PDO và PDO MySQL. Các script kiểm thử PHP cần curl.
+- Chạy `composer install` từ thư mục gốc. Manifest/lock hiện thống nhất firebase/php-jwt 7.2.1.
+- Cấu hình DB trong `config/database.php` với `host`, `port`, `name`, `user`, `password`; giữ thông tin của máy bạn.
+- Các lệnh dưới đây dùng đường dẫn máy ví dụ; thay bằng đường dẫn XAMPP và dự án thực tế của bạn.
+- Nếu cập nhật một dự án đang có dữ liệu, chỉ chép code/config phù hợp; không import lại schema/seed. Các file SQL có thao tác xóa/tạo lại dữ liệu và chỉ dùng khi chủ động khởi tạo DB thử mới.
 
 ### Bước 1: Khởi tạo Cơ sở dữ liệu MySQL
 1. Bật **MySQL** trong **XAMPP Control Panel**.
@@ -113,10 +121,26 @@ Mở Terminal tại thư mục gốc `C:\Users\ASUS\Desktop\LTW-GK` (hoặc nh�
 
 Khi MySQL và server `localhost:8000` đang chạy, mở Terminal mới và chạy:
 ```powershell
-# 1. Kiểm thử 32 kịch bản Auth, Users, Loans & Tồn kho (Người 1)
+# 1. Kiểm thử 34 phép kiểm tra Auth, Users, Loans & Tồn kho (Người 1)
 & "C:\xampp\php\php.exe" tests/run-api-tests.php
 
 # 2. Kiểm thử 31 kịch bản Categories, Books, Search/Filter/Pagination & Statistics (Người 2)
 & "C:\xampp\php\php.exe" tests/run-member2-tests.php
 ```
 Hoặc import file `tests/postman/library-rest-full.postman_collection.json` (và `tests/postman/member1-collection.json`) vào **Postman Collection Runner** để chạy toàn bộ kịch bản kiểm thử tự động.
+
+
+## 6. Hợp đồng API sau hai đợt sửa lỗi
+
+- Dùng `docs/openapi.yaml` làm đặc tả tổng hợp. Hai file `openapi-auth-loans.yaml` và `openapi-catalog.yaml` là các phần của cùng hợp đồng. Có đủ Health, Auth, Users, Loans, Categories, Books và Statistics, kể cả các route thống kê con và alias `/me`.
+- Server mặc định: `http://localhost:8000/api/v1`; đổi server URL nếu chạy trong thư mục con Apache. Có thể import YAML vào công cụ hỗ trợ OpenAPI 3.0.3.
+- Mọi request ghi JSON dùng `Content-Type: application/json` và body object. JSON hỏng/rỗng/mảng trả 400; sai content type trả 415; sai kiểu hoặc giá trị trường/query trả 422; method sai trả 405 kèm Allow.
+- Query phải là giá trị đơn, không dùng dạng mảng như `page[]=1`. ID nằm trong miền INT UNSIGNED. Chuỗi số nguyên hợp lệ từ client cũ vẫn được hỗ trợ.
+- `books.publish_year` là tên trường thật. `is_active` trong response là số nguyên 0/1. POST sách cần title, author, category_id, total_copies; PUT/PATCH giữ nguyên những trường không gửi.
+- Guest/Member không xem được chi tiết sách inactive (404); Admin xem được khi gửi Bearer token. Loans API vẫn trả lịch sử cho đúng chủ sở hữu/Admin.
+- Giới hạn API books vẫn là 50 đầu sách mỗi trang. Màn quản trị và thư viện Member tự gọi tiếp các trang theo bộ lọc rồi hiển thị đầy đủ. Trang tra cứu công khai vẫn dùng các nút phân trang hiện có.
+- Bìa sách chỉ nhận null/chuỗi rỗng hoặc đường dẫn chính xác tới SVG trong `public/assets/images/covers`. Các URL, đường dẫn hệ thống và `../` bị từ chối. Bộ ảnh đang dùng trong seed được giữ hợp lệ.
+- PHP và từng kết nối DB dùng giờ Việt Nam (+07:00). DATETIME/DATE không chứa offset; health.timestamp có `+07:00`. Bản cập nhật không tự diễn giải/chuyển đổi các bản ghi thời gian cũ.
+- Pending chưa giữ chỗ, chưa trừ tồn; sửa sách không bị chặn bởi số lượng pending. Không được giảm tổng xuống dưới số bản đã borrowed. Xóa sách có pending/borrowed vẫn bị chặn; chỉ có lịch sử đã kết thúc thì chuyển inactive để giữ lịch sử.
+- Phiên bản này chưa triển khai ETag/If-None-Match/304; đặc tả không quảng cáo tính năng cache đó.
+- Router dùng các file `routes.php` trong Books/Categories/Statistics và các file nghiệp vụ Auth/Users/Loans. Những module cũ không được router gọi được giữ nguyên để tránh xóa công việc đã có; chúng không phải entry point để mô tả API hiện tại.
