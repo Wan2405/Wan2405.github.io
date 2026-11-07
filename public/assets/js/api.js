@@ -10,17 +10,21 @@
     const USER_STORAGE_KEY = 'library_current_user';
 
     function detectPaths() {
+        const hostname = window.location.hostname || '';
         const pathname = window.location.pathname || '';
+        const isRemoteFrontend = hostname.includes('github.io') || hostname === 'yaoka.works' || hostname === 'www.yaoka.works';
+        const remoteApiBase = 'https://wan2405.alwaysdata.net/api/v1';
+
         const publicIdx = pathname.indexOf('/public/');
         if (publicIdx !== -1) {
             const projectRoot = pathname.substring(0, publicIdx);
             return {
-                apiBase: projectRoot + '/api/v1',
+                apiBase: isRemoteFrontend ? remoteApiBase : (projectRoot + '/api/v1'),
                 publicBase: projectRoot + '/public',
             };
         }
         return {
-            apiBase: '/api/v1',
+            apiBase: isRemoteFrontend ? remoteApiBase : '/api/v1',
             publicBase: '',
         };
     }

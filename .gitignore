@@ -1,5 +1,10 @@
 # Secret configuration (never commit real secrets or tokens)
 /config/config.php
+/config/jwt-secret.php
+/config/database.php
+
+# Consolidated database upload package
+/database_upload/
 
 # Composer dependencies
 /vendor/
@@ -10,6 +15,5 @@ Thumbs.db
 .vscode/
 .idea/
 
-/config/jwt-secret.php
-
+# SQL dumps
 *.sql
