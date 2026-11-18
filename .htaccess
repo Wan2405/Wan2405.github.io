@@ -8,6 +8,3 @@ RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
 # 2. Route all /api/v1 and /api/v1/* requests to api/index.php
 RewriteRule ^api/v1(?:/.*)?$ api/index.php [QSA,L]
-
-# 3. Redirect root of project to public/index.html when accessed via XAMPP Apache
-RewriteRule ^$ public/index.html [L]
