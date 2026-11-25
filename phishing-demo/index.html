@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'; connect-src 'none'">
+<title>Kiểm thử biểu mẫu · NCKH Phishing</title>
+<style>
+* {box-sizing:border-box}
+:root {font:16px/1.55 "Source Sans 3","Segoe UI",sans-serif;color:#16313a;background:#f1f5f4}
+body {margin:0}
+header {background:#123c46;color:white;border-bottom:5px solid #7edec6}
+.wrap {max-width:1010px;margin:auto;padding:28px clamp(16px,4vw,40px)}
+h1 {margin:0 0 5px;font-size:clamp(1.65rem,4vw,2.45rem);line-height:1.15}
+header p {margin:0;color:#dbefec}
+main {display:grid;grid-template-columns:minmax(195px,0.8fr) minmax(0,2fr);gap:24px;align-items:start}
+nav,article {background:#fff;border:1px solid #cbdad7;border-radius:14px;padding:20px}
+h2,h3 {margin:0 0 12px;line-height:1.3}
+h2 {font-size:1.3rem} h3 {font-size:1rem}
+nav a {display:block;margin:3px 0;padding:8px 10px;border-radius:7px;color:#294651;text-decoration:none}
+nav a:hover {background:#f1f6f5} nav a[aria-current] {background:#d8f3eb;color:#075b48;font-weight:700}
+:focus-visible {outline:3px solid #2474bf;outline-offset:2px}
+article > p {margin:0 0 16px}
+section {margin-top:22px}
+#fixture,.answer {padding:16px;border-radius:8px;border:1px solid #cfddda}
+.answer {background:#edf8f5;border-color:#b4dfd4}
+ul {padding-left:22px;margin:0} li+li {margin-top:6px}
+label {display:block;font-weight:600} input {display:block;width:100%;max-width:420px;padding:10px 12px;margin:5px 0 12px;border:1px solid #aebfbd;border-radius:6px;background:#f5f8f7;font:inherit}
+form:last-child input:last-child {margin-bottom:0}
+button {background:#09604f;color:white;border:0;border-radius:6px;padding:9px 15px;font:inherit;font-weight:600;cursor:pointer}
+small {display:block;color:#52686c;overflow-wrap:anywhere;margin-top:12px}
+@media(max-width:680px){main {grid-template-columns:1fr;gap:12px}.wrap {padding:18px}nav,article {padding:15px}nav a {display:inline-block;margin:2px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Kiểm thử biểu mẫu</h1><p>Chọn một tình huống, mở extension 0.2 rồi bấm “Kiểm tra biểu mẫu”.</p></div></header>
+<main class="wrap">
+<nav aria-label="Tình huống kiểm thử"><h2>Tình huống</h2><div id="cases"></div></nav>
+<article>
+<h2 id="title"></h2><p id="instruction"></p>
+<div id="fixture"></div>
+<section class="answer" aria-live="polite"><h3>Kết quả mong đợi trong popup</h3><ul id="expected"></ul></section>
+<small id="host"></small>
+</article>
+</main>
+<script>
+"use strict";
+const host = location.hostname;
+const external = /(^|\.)example\.net$/i.test(host) ? "example.org" : "example.net";
+const sameSiteHost = "auth-demo." + host;
+const isDomain = !!host && host.includes(".") && !/^[\d.]+$/.test(host) && !host.includes(":");
+const here = "Mật khẩu · " + host + " · cùng hostname với trang.";
+const away = "OTP · " + external + " · khác hostname với trang. Trên tên miền đăng ký riêng, popup sẽ báo khác miền đăng ký.";
+const none = "Chưa thấy ô mật khẩu hoặc OTP trong trang chính.";
+const fixture = document.querySelector("#fixture");
+const expected = document.querySelector("#expected");
+function expectLines(...lines) {
+  expected.replaceChildren(...lines.map(line => {
+    const li = document.createElement("li");
+    li.textContent = line;
+    return li;
+  }));
+}
+function field(kind, action, parent = fixture) {
+  const form = document.createElement("form");
+  if (action !== null) form.setAttribute("action", action);
+  const label = document.createElement("label");
+  label.textContent = kind === "password" ? "Mật khẩu mẫu" : "Mã OTP mẫu";
+  const input = document.createElement("input");
+  input.type = kind === "password" ? "password" : "text";
+  input.autocomplete = kind === "password" ? "off" : "one-time-code";
+  input.placeholder = "Ô mẫu chỉ đọc";
+  input.readOnly = true;
+  label.append(input);
+  form.append(label);
+  parent.append(form);
+}
+function note(message) {
+  const p = document.createElement("p");
+  p.textContent = message;
+  fixture.append(p);
+}
+const cases = [
+  { id:"cung-host", title:"Form gửi cùng hostname", run() {
+    field("password","./demo-login");
+    expectLines(here);
+  }},
+  { id:"mien-phu", title:"Form gửi sang tên miền phụ", run() {
+    if (!isDomain) {
+      note("Mở ca này trên tên miền của bạn để so hai hostname cùng miền đăng ký.");
+      expectLines(none);
+      return;
+    }
+    field("password","https://" + sameSiteHost + "/demo");
+    expectLines("Mật khẩu · " + sameSiteHost + " · cùng miền đăng ký với trang nếu hostname hiện tại có miền đăng ký. Hostname đích chỉ dùng để so sánh, không cần cấu hình DNS.");
+  }},
+  { id:"khac-mien", title:"OTP gửi sang miền khác", run() {
+    field("otp","https://" + external + "/verify");
+    expectLines(away);
+  }},
+  { id:"action-rong", title:"Đích gửi để trống", run() {
+    field("password","");
+    expectLines("Mật khẩu · form không khai báo đích gửi riêng.");
+  }},
+  { id:"nhieu-form", title:"Nhiều form trên cùng trang", run() {
+    field("password","./demo-login");
+    field("otp","https://" + external + "/verify");
+    field("password",null);
+    expectLines(here,away,"Mật khẩu · form không khai báo đích gửi riêng.");
+  }},
+  { id:"xuat-hien-muon", title:"Ô mật khẩu xuất hiện muộn", run() {
+    const next = document.createElement("button");
+    next.type = "button";
+    next.textContent = "Tiếp tục";
+    fixture.append(next);
+    expectLines(none);
+    next.addEventListener("click",() => {
+      next.remove();
+      field("password","./demo-login");
+      expectLines(here);
+    });
+  }},
+  { id:"khong-co-form", title:"Trang không có ô đăng nhập", run() {
+    note("Đây là một đoạn văn mẫu. Trang hiện không có ô nhập liệu.");
+    expectLines(none);
+  }}
+];
+const links = document.querySelector("#cases");
+for (const item of cases) {
+  const link = document.createElement("a");
+  link.href = "#" + item.id;
+  link.textContent = item.title;
+  links.append(link);
+}
+function render() {
+  const current = cases.find(item => "#" + item.id === location.hash) || cases[0];
+  for (const link of links.children) {
+    if (link.hash === "#" + current.id) link.setAttribute("aria-current","page");
+    else link.removeAttribute("aria-current");
+  }
+  document.querySelector("#title").textContent = current.title;
+  document.querySelector("#instruction").textContent = current.id === "xuat-hien-muon"
+    ? "Quét một lần, đóng popup, bấm “Tiếp tục” rồi quét lại. Tải lại trang để đặt lại ca thử."
+    : "Các ô mẫu chỉ dùng để extension đọc cấu trúc. Bạn chỉ cần mở popup và quét.";
+  fixture.replaceChildren();
+  current.run();
+}
+document.querySelector("#host").textContent = host ? "Hostname hiện tại: " + host : "Hãy mở trang qua HTTP hoặc HTTPS để kiểm thử extension.";
+document.addEventListener("submit",event => event.preventDefault());
+window.addEventListener("hashchange",render);
+render();
+</script>
+</body>
+</html>
